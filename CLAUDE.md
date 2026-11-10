@@ -8,6 +8,6 @@ Runner e2e Android via adb com fluxos YAML no formato do Maestro.
 - Teste no celular real: o `back` pode sair do app e o próximo toque cair no launcher; confira a tela antes de tocar por coordenada.
 - Pastas de fluxos no repo do app: `.e2e-box/` e `.maestro/` (`FLOW_DIRS` em `config.ts`). Sem `workspaces` na config, viram workspaces; a CLI sem alvo roda essas pastas. `config.yaml` na raiz delas é do Maestro, não fluxo (`isFlowFile`).
 - Textos do painel: `src/lib/i18n.tsx` (pt-BR e en, `useI18n()`); idioma no cookie `e2e-box-lang`, lido no `layout.tsx` (`lang.ts`). Texto novo na interface entra nos dois idiomas. Log do motor, erros das rotas e CLI seguem em português.
-- `bin/e2e-box.ts`: CLI (`pnpm e2e`). O lib usa imports relativos para a CLI rodar com `tsx`.
+- `bin/e2e-box.ts`: CLI (`pnpm e2e`). No npm vai só a CLI: `scripts/build-cli.mjs` gera `dist/cli.js` com tudo dentro (por isso as dependências ficam em devDependencies) e o pacote leva o jar do agente (`files` no package.json). Publicar: `npm version patch|minor` e `npm publish` (o `prepublishOnly` roda typecheck e o build). O lib usa imports relativos para a CLI rodar com `tsx`.
 - Comando novo do Maestro: adicionar no `switch` de `execCommand` e na tabela do README.
 - Porta 3334. Verificação: `pnpm typecheck`.

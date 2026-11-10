@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
-    <img src="assets/logo-light.svg" alt="e2e-box" width="420">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/pedrolaxe/e2e-box/main/assets/logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/pedrolaxe/e2e-box/main/assets/logo-light.svg" alt="e2e-box" width="420">
   </picture>
 </p>
 
@@ -18,12 +18,21 @@
 </p>
 
 <p align="center">
-  <img src="assets/banner.png" alt="e2e-box: dashboard with device mirror, YAML editor and live steps" width="820">
+  <img src="https://raw.githubusercontent.com/pedrolaxe/e2e-box/main/assets/banner.png" alt="e2e-box: dashboard with device mirror, YAML editor and live steps" width="820">
 </p>
 
 ## Getting started
 
+**Just the CLI** (in your app's repo, or in CI):
+
 ```bash
+npx e2e-box            # runs the flows in .e2e-box/ or .maestro/
+```
+
+**The dashboard** (mirror, recorder, editor) runs from a clone:
+
+```bash
+git clone https://github.com/pedrolaxe/e2e-box.git && cd e2e-box
 pnpm install
 pnpm dev            # http://127.0.0.1:3334
 ```
@@ -118,17 +127,52 @@ Each run is stored in `runs/<date>/` with a `report.json`; on failure, also `fal
 
 ## CLI (CI / terminal)
 
+Published on npm with no dependencies: it only needs Node 18+ and `adb`. Use `npx e2e-box`, or add it to your app with
+`npm i -D e2e-box` and call `e2e-box` from a script. Inside the e2e-box repo, `pnpm e2e` runs the same CLI from source.
+
 ```bash
-pnpm e2e                       # no target: the .e2e-box/ and .maestro/ folders in the current directory
-pnpm e2e flows/configuracoes.yaml
-pnpm e2e my-app:login.yaml -e USER=test -v   # <workspace>:<file>
-pnpm e2e flows/                # every .yaml at the root of the folder
-pnpm e2e flows/ --all-devices  # on every connected device, at the same time
+npx e2e-box                       # no target: the .e2e-box/ and .maestro/ folders in the current directory
+npx e2e-box .maestro/login.yaml
+npx e2e-box .maestro/ -e USER=test -v
+npx e2e-box .maestro/ --all-devices   # on every connected device, at the same time
+npx e2e-box my-app:login.yaml     # <workspace>:<file>, with an e2e-box.config.json
 ```
 
 Exits with code 1 if any flow fails and 2 if it cannot start (no device, or the device is busy).
 `-d <serial>` picks the device; repeat it for several, or use `--all-devices`. Each device runs the flows in sequence,
-devices run in parallel, and each output line starts with the serial.
+devices run in parallel, and each output line starts with the serial. Evidence for failed runs goes to `runs/`.
+
+### GitHub Actions
+
+```yaml
+name: e2e
+on: [push]
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          script: |
+            adb install -r app-release.apk   # your build
+            npx e2e-box
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-runs
+          path: runs/
+```
 
 ## Supported commands
 

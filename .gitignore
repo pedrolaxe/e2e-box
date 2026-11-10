@@ -5,3 +5,4 @@ next-env.d.ts
 runs/
 e2e-box.local.json
 agent/build/
+dist/
