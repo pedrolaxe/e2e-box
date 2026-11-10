@@ -1,0 +1,15 @@
+# Exemplo que roda em qualquer Android: abre as Configurações e procura "Bateria".
+appId: com.android.settings
+env:
+  BUSCA: Bateria
+---
+- launchApp
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element: "${BUSCA}|Battery"
+    timeout: 15000
+- tapOn: "${BUSCA}|Battery"
+- assertVisible: ".*(%|Bateria|Battery).*"
+- takeScreenshot: bateria
+- back
+- stopApp

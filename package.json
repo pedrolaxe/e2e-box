@@ -1,0 +1,28 @@
+{
+  "name": "e2e-box",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Testes e2e no app nativo Android via adb, com fluxos YAML no formato do Maestro",
+  "scripts": {
+    "dev": "next dev -H 127.0.0.1 -p 3334",
+    "build": "next build",
+    "start": "next start -H 127.0.0.1 -p 3334",
+    "e2e": "tsx bin/e2e-box.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.2.5",
+    "next": "^15.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

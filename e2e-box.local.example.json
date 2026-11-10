@@ -1,0 +1,8 @@
+{
+  "env": {
+    "meu-app": {
+      "USUARIO": "usuario-de-teste",
+      "SENHA": "senha-de-teste"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "workspaces": [
+    {
+      "id": "exemplos",
+      "name": "Exemplos",
+      "dir": "./flows"
+    }
+  ],
+  "runsDir": "./runs",
+  "lookupTimeoutMs": 7000
+}
