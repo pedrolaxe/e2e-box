@@ -6,3 +6,7 @@ runs/
 e2e-box.local.json
 agent/build/
 dist/
+
+# Local: vídeos de demonstração e config do app do Claude
+demo/
+.claude/
