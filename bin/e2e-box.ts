@@ -1,17 +1,21 @@
 /**
  * Roda fluxos sem a interface (bom para CI ou terminal).
  *
- *   pnpm e2e <arquivo.yaml|pasta|workspace:rel.yaml> [-d serial]... [--all-devices] [-e CHAVE=valor]
+ *   pnpm e2e [arquivo.yaml|pasta|workspace:rel.yaml]... [-d serial]... [--all-devices] [-e CHAVE=valor]
  *
- * Pastas rodam todos os .yaml da raiz (subpastas são subfluxos). Sai com código 1 se algum falhar.
+ * Pastas rodam todos os .yaml da raiz (subpastas são subfluxos; o config.yaml do Maestro não é fluxo).
+ * Sem alvo, roda as pastas .e2e-box/ e .maestro/ da pasta atual. Sai com código 1 se algum falhar.
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import { Adb } from '../src/lib/adb'
-import { loadConfig } from '../src/lib/config'
+import { findFlowDirs, loadConfig, ROOT } from '../src/lib/config'
 import { runFlow, type RunEvent } from '../src/lib/engine'
-import { resolveRef } from '../src/lib/flows'
+import { isFlowFile, resolveRef } from '../src/lib/flows'
 import { acquireLock, releaseLock } from '../src/lib/lock'
+
+// O agente e os recursos ficam na pasta do e2e-box, mesmo rodando de dentro do repo do app.
+process.env.E2E_BOX_HOME ??= path.resolve(__dirname, '..')
 
 const c = { dim: '\x1b[2m', red: '\x1b[31m', green: '\x1b[32m', yellow: '\x1b[33m', blue: '\x1b[34m', orange: '\x1b[38;5;214m', reset: '\x1b[0m' }
 
@@ -44,8 +48,9 @@ function expand(target: string): { ref: string; file: string; appId?: string; ws
   if (fs.statSync(abs).isDirectory()) {
     return fs
       .readdirSync(abs)
-      .filter((f) => /\.ya?ml$/i.test(f))
-      .map((f) => ({ ref: f, file: path.join(abs, f), appId: ws?.appId, wsEnv: ws?.env, rootDir: ws?.dir }))
+      .filter(isFlowFile)
+      .sort()
+      .map((f) => ({ ref: path.relative(process.cwd(), path.join(abs, f)) || f, file: path.join(abs, f), appId: ws?.appId, wsEnv: ws?.env, rootDir: ws?.dir }))
   }
   return [{ ref: path.basename(abs), file: abs, appId: ws?.appId, wsEnv: ws?.env, rootDir: ws?.dir }]
 }
@@ -83,11 +88,21 @@ function printer(verbose: boolean, prefix = '') {
   }
 }
 
+function usage(code: number, msg?: string): never {
+  if (msg) console.error(`${c.red}${msg}${c.reset}`)
+  console.log('uso: pnpm e2e [arquivo.yaml|pasta|workspace:rel.yaml]... [-d serial]... [--all-devices] [-e CHAVE=valor] [-v]')
+  console.log(`${c.dim}sem alvo, roda as pastas .e2e-box/ e .maestro/ da pasta atual${c.reset}`)
+  process.exit(code)
+}
+
 async function main() {
   const { targets, env, serials, all, verbose } = parseArgs(process.argv.slice(2))
+  if (targets.includes('-h') || targets.includes('--help')) usage(0)
   if (!targets.length) {
-    console.log('uso: pnpm e2e <arquivo.yaml|pasta|workspace:rel.yaml> [-d serial]... [--all-devices] [-e CHAVE=valor] [-v]')
-    process.exit(2)
+    // Sem alvo: as pastas de fluxos do repo (.e2e-box/ e .maestro/), como no CI do app.
+    targets.push(...findFlowDirs(ROOT).map((d) => path.relative(process.cwd(), d) || '.'))
+    if (!targets.length) usage(2, 'Nenhuma pasta .e2e-box/ ou .maestro/ aqui; informe um arquivo ou pasta.')
+    console.log(`${c.dim}fluxos de ${targets.join(', ')}${c.reset}`)
   }
   const online = (await new Adb().devices()).filter((d) => d.state === 'device').map((d) => d.serial)
   const devices = all ? online : serials.length ? serials : online.slice(0, 1)
@@ -98,6 +113,7 @@ async function main() {
   }
   const cfg = loadConfig()
   const flows = targets.flatMap(expand)
+  if (!flows.length) usage(2, `Nenhum fluxo .yaml em ${targets.join(', ')}.`)
   const controller = new AbortController()
   process.on('SIGINT', () => controller.abort())
 

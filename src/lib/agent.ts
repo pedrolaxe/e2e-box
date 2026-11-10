@@ -12,7 +12,11 @@ const DEVICE_JAR = '/data/local/tmp/e2e-box-agent.jar'
 /** O nome real leva um sufixo aleatório por sessão. */
 const SOCKET_PREFIX = 'e2e-box-agent'
 
-export const AGENT_JAR = path.join(ROOT, 'agent', 'dist', 'e2e-box-agent.jar')
+/**
+ * O jar fica na pasta do e2e-box, que não é a pasta atual quando a CLI roda no repo do app
+ * (`.e2e-box/` ou `.maestro/`): a CLI informa a sua em E2E_BOX_HOME. Lido na hora, não no import.
+ */
+const agentJar = () => path.join(process.env.E2E_BOX_HOME ?? ROOT, 'agent', 'dist', 'e2e-box-agent.jar')
 
 type Run = (args: string[], opts?: { timeoutMs?: number; quiet?: boolean }) => Promise<Buffer>
 
@@ -56,6 +60,7 @@ export class AgentClient {
    * do aparelho poderia ter ocupado o socket e receberia o que for digitado (senha inclusive).
    */
   private async start() {
+    const AGENT_JAR = agentJar()
     if (!fs.existsSync(AGENT_JAR)) {
       this.disabled = true
       throw new AgentError(`agente não compilado (${AGENT_JAR}); rode: node agent/build.mjs`)

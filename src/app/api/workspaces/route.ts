@@ -1,13 +1,16 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { addWorkspace, detectAppId, loadConfig } from '@/lib/config'
+import { addWorkspace, detectAppId, findFlowDirs, loadConfig } from '@/lib/config'
 
 export const dynamic = 'force-dynamic'
 
 // Pastas irmãs que não viram sugestão (além da do próprio e2e-box).
 const SKIP = new Set(['node_modules'])
 
-/** Sugestões: repos vizinhos ao e2e-box, apontando para <repo>/.maestro, com appId detectado. */
+/**
+ * Sugestões: repos vizinhos ao e2e-box, apontando para a pasta de fluxos que já existe
+ * (<repo>/.e2e-box ou <repo>/.maestro; sem nenhuma, .maestro), com appId detectado.
+ */
 export async function GET() {
   const cfg = loadConfig()
   const parent = path.dirname(cfg.root)
@@ -17,11 +20,12 @@ export async function GET() {
     .filter((e) => e.isDirectory() && !e.name.startsWith('.') && !SKIP.has(e.name) && path.join(parent, e.name) !== cfg.root)
     .map((e) => {
       const repo = path.join(parent, e.name)
+      const found = findFlowDirs(repo)[0]
       return {
         repo: e.name,
-        dir: `../${e.name}/.maestro`,
+        dir: `../${e.name}/${found ? path.basename(found) : '.maestro'}`,
         appId: detectAppId(repo),
-        hasFlows: fs.existsSync(path.join(repo, '.maestro')),
+        hasFlows: !!found,
       }
     })
     .filter((s) => !used.has(path.resolve(cfg.root, s.dir)))

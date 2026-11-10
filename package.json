@@ -1,9 +1,40 @@
 {
   "name": "e2e-box",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "description": "End-to-end testing for native Android apps over adb, with Maestro-style YAML flows, a local dashboard with live device mirroring, a flow recorder and a CLI for CI",
+  "keywords": [
+    "android",
+    "adb",
+    "e2e",
+    "e2e-testing",
+    "maestro",
+    "yaml",
+    "test-automation",
+    "mobile-testing",
+    "uiautomator",
+    "react-native",
+    "expo",
+    "nextjs"
+  ],
+  "homepage": "https://github.com/pedrolaxe/e2e-box#readme",
+  "bugs": {
+    "url": "https://github.com/pedrolaxe/e2e-box/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pedrolaxe/e2e-box.git"
+  },
   "license": "MIT",
-  "description": "Testes e2e no app nativo Android via adb, com fluxos YAML no formato do Maestro",
+  "author": {
+    "name": "Pedro Laxe",
+    "email": "pedrolaxe@gmail.com",
+    "url": "https://github.com/pedrolaxe"
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "packageManager": "pnpm@10.28.0",
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 3334",
     "build": "next build",

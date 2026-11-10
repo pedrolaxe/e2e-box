@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="e2e-box">
+  <defs>
+    <linearGradient id="mt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ddd6fe"/><stop offset="1" stop-color="#b9a5fb"/></linearGradient>
+    <linearGradient id="ml" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b6cf6"/><stop offset="1" stop-color="#6d4fe0"/></linearGradient>
+    <linearGradient id="mr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4c3aa6"/><stop offset="1" stop-color="#2f2470"/></linearGradient>
+  </defs>
+  <g stroke-linejoin="round" stroke-width="10">
+    <path d="M128 30 L213 79 L128 128 L43 79 Z" fill="url(#mt)" stroke="url(#mt)"/>
+    <path d="M43 79 L128 128 L128 226 L43 177 Z" fill="url(#ml)" stroke="url(#ml)"/>
+    <path d="M128 128 L213 79 L213 177 L128 226 Z" fill="url(#mr)" stroke="url(#mr)"/>
+  </g>
+  <path d="M63 141 L80 165 L107 147" fill="none" stroke="#4ade80" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M157 141 L157 183 L191 143 Z" fill="#facc15" stroke="#facc15" stroke-width="7" stroke-linejoin="round"/>
+</svg>

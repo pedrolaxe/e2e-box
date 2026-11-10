@@ -1,7 +1,25 @@
-# e2e-box
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img src="assets/logo-light.svg" alt="e2e-box" width="420">
+  </picture>
+</p>
 
-Testes e2e no app nativo Android **via adb**, com fluxos YAML no formato do Maestro.
-Painel local em Next.js com espelho do celular, log ao vivo, fila de passos e gravador de fluxos.
+<p align="center">
+  Testes e2e no app nativo Android <strong>via adb</strong>, com fluxos YAML no formato do Maestro.<br>
+  Painel local em Next.js com espelho do celular, log ao vivo, fila de passos e gravador de fluxos.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Android-adb-4ade80?style=flat-square" alt="Android via adb">
+  <img src="https://img.shields.io/badge/fluxos-YAML%20(Maestro)-a78bfa?style=flat-square" alt="Fluxos YAML no formato do Maestro">
+  <img src="https://img.shields.io/badge/Next.js-15-1b1631?style=flat-square" alt="Next.js 15">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-facc15?style=flat-square" alt="Licença MIT"></a>
+</p>
+
+<p align="center">
+  <img src="assets/banner.png" alt="e2e-box: painel com espelho do celular, editor YAML e passos ao vivo" width="820">
+</p>
 
 ## Rodar
 
@@ -35,12 +53,17 @@ no campo focado (sem ADBKeyboard). Sobe sozinho na primeira leitura de tela e é
 `e2e-box.config.json` lista as pastas de fluxos. Vem com **Exemplos** (`./flows`), que abre as Configurações e roda
 em qualquer Android.
 
-Para o seu app, o ideal é versionar os fluxos no repo dele e clonar o e2e-box ao lado. O `+` da barra lateral sugere
-as pastas vizinhas e detecta o `appId` de apps Expo/React Native, ou edite o arquivo:
+Para o seu app, o ideal é versionar os fluxos no repo dele, em **`.e2e-box/`** ou **`.maestro/`**, e clonar o e2e-box ao lado.
+O `+` da barra lateral sugere as pastas vizinhas (aponta para a `.e2e-box/` ou a `.maestro/` que já existir) e detecta o
+`appId` de apps Expo/React Native, ou edite o arquivo:
 
 ```json
 { "id": "meu-app", "name": "Meu app", "dir": "../meu-app/.maestro", "appId": "com.empresa.meuapp" }
 ```
+
+Sem `workspaces` no `e2e-box.config.json` (ou sem o arquivo), o e2e-box procura `.e2e-box/` e `.maestro/` na pasta em que
+roda e usa cada uma como workspace, com o `appId` do `app.json`. O `config.yaml` na raiz da pasta (configuração do Maestro)
+não aparece como fluxo.
 
 Usuário e senha de teste ficam em `e2e-box.local.json` (fora do git), por workspace; veja `e2e-box.local.example.json`.
 
@@ -92,6 +115,7 @@ Cada execução fica em `runs/<data>/` com `report.json`; quando falha, também 
 ## CLI (CI / terminal)
 
 ```bash
+pnpm e2e                     # sem alvo: as pastas .e2e-box/ e .maestro/ da pasta atual
 pnpm e2e flows/configuracoes.yaml
 pnpm e2e meu-app:login.yaml -e USUARIO=teste -v   # <workspace>:<arquivo>
 pnpm e2e flows/              # todos os .yaml da raiz da pasta

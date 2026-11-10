@@ -118,13 +118,19 @@ export interface FlowFile {
   subflow: boolean
 }
 
+/** `.yaml` que é fluxo: o `config.yaml` na raiz da pasta é a configuração do workspace do Maestro, não um fluxo. */
+export function isFlowFile(rel: string): boolean {
+  return /\.ya?ml$/i.test(rel) && !/^config\.ya?ml$/i.test(rel)
+}
+
 function walk(dir: string, base = dir): string[] {
   if (!fs.existsSync(dir)) return []
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     if (e.name.startsWith('.') || e.name === 'node_modules') return []
     const p = path.join(dir, e.name)
     if (e.isDirectory()) return walk(p, base)
-    return /\.ya?ml$/i.test(e.name) ? [path.relative(base, p).split(path.sep).join('/')] : []
+    const rel = path.relative(base, p).split(path.sep).join('/')
+    return isFlowFile(rel) ? [rel] : []
   })
 }
 

@@ -1,0 +1,175 @@
+<!doctype html>
+<!-- Fonte do assets/banner.png. Gerar (1280x640 a 2x):
+     google-chrome --headless=new --hide-scrollbars --force-device-scale-factor=2 --window-size=1280,640 \
+       --virtual-time-budget=5000 --screenshot=assets/banner.png assets/src/banner.html -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>e2e-box banner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=block" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1b1631; --panel: #221b3c; --panel-2: #2a2249; --line: #3a3163; --line-2: #4a4079;
+    --text: #ece8ff; --muted: #9a92c4; --dim: #8f88bb;
+    --yellow: #facc15; --green: #4ade80; --purple: #a78bfa; --blue: #60a5fa; --pink: #f472b6; --teal: #2dd4bf; --red: #fb7185;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1280px; height: 640px; overflow: hidden; }
+  body {
+    position: relative;
+    font-family: Inter, system-ui, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(700px 500px at 82% 30%, rgba(124, 92, 246, .38), transparent 70%),
+      radial-gradient(600px 420px at 8% 110%, rgba(51, 32, 94, .9), transparent 70%),
+      radial-gradient(500px 300px at 50% -10%, rgba(38, 26, 77, .9), transparent 70%),
+      var(--bg);
+  }
+  body::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(236, 232, 255, .07) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(90deg, transparent 0%, #000 45%, #000 100%);
+  }
+  .mono { font-family: "Fira Code", ui-monospace, monospace; font-variant-ligatures: none; }
+
+  /* Coluna de texto */
+  .left { position: absolute; left: 72px; top: 70px; width: 520px; }
+  .logo { width: 300px; display: block; }
+  h1 { margin-top: 44px; font-size: 44px; line-height: 1.08; font-weight: 800; letter-spacing: -.025em; }
+  h1 em { font-style: normal; background: linear-gradient(90deg, #c4b5fd, #a78bfa 60%, #f0abfc); -webkit-background-clip: text; color: transparent; }
+  .sub { margin-top: 18px; font-size: 19px; line-height: 1.5; color: var(--muted); max-width: 470px; }
+  .chips { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px; max-width: 500px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border-radius: 999px;
+    font-size: 14px; font-weight: 500; color: #d8d2fb;
+    background: rgba(42, 34, 73, .75); border: 1px solid var(--line);
+  }
+  .chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+  .repo { position: absolute; left: 72px; bottom: 48px; font-size: 15px; color: var(--dim); display: flex; gap: 10px; align-items: center; }
+  .repo svg { width: 18px; height: 18px; fill: var(--dim); }
+  .repo b { color: var(--text); font-weight: 500; }
+
+  /* Editor */
+  .card {
+    position: absolute; border-radius: 16px; background: rgba(34, 27, 60, .92);
+    border: 1px solid var(--line-2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 30px 60px rgba(8, 4, 24, .55);
+  }
+  .editor { left: 588px; top: 108px; width: 396px; height: 352px; overflow: hidden; }
+  .bar { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-bottom: 1px solid var(--line); background: rgba(27, 22, 49, .6); }
+  .bar .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line-2); }
+  .bar .name { margin-left: 8px; font-size: 13px; color: var(--muted); }
+  .bar .btn { white-space: nowrap; margin-left: auto; font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 7px; color: #1b1631; background: var(--yellow); }
+  .bar .btn.ghost { margin-left: 6px; color: var(--muted); background: transparent; border: 1px solid var(--line-2); }
+  .code { padding: 12px 0; font-size: 13.2px; line-height: 23px; }
+  .ln { display: grid; grid-template-columns: 22px 30px 1fr; align-items: center; padding-right: 12px; white-space: pre; }
+  .ln .st { text-align: center; font-size: 12px; }
+  .ln .n { color: #5e5590; text-align: right; padding-right: 12px; }
+  .ln.ok .st { color: var(--green); }
+  .ln.run { background: rgba(250, 204, 21, .10); box-shadow: inset 2px 0 0 var(--yellow); }
+  .ln.run .st { color: var(--yellow); }
+  .k { color: var(--purple); } .s { color: var(--green); } .v { color: var(--pink); } .c { color: var(--blue); } .p { color: var(--dim); }
+
+  /* Log ao vivo */
+  .log { left: 612px; top: 438px; width: 336px; padding: 14px 16px 12px; background: rgba(27, 22, 49, .96); }
+  .log h3 { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .log h3 i { width: 7px; height: 7px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .log h3 span { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 500; }
+  .row { display: flex; gap: 8px; font-size: 12.5px; line-height: 22px; color: #cdc7ef; white-space: nowrap; }
+  .row .t { margin-left: auto; color: var(--dim); }
+  .row.ok b { color: var(--green); font-weight: 400; }
+  .row.run b { color: var(--yellow); font-weight: 400; }
+  .row.run { color: var(--text); }
+
+  /* Celular */
+  .phone {
+    position: absolute; left: 968px; top: 52px; width: 262px; height: 540px; border-radius: 40px; padding: 10px;
+    background: linear-gradient(160deg, #3a3163, #15112a 60%);
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .12), 0 40px 80px rgba(8, 4, 24, .7), 0 0 0 1px #0d0a1c;
+  }
+  .screen { position: relative; width: 100%; height: 100%; border-radius: 31px; overflow: hidden; background: #f6f3ff; color: #1b1631; }
+  .status { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 0; font-size: 11.5px; font-weight: 600; }
+  .status .cam { width: 10px; height: 10px; border-radius: 50%; background: #1b1631; }
+  .status .ic { display: flex; gap: 4px; align-items: center; }
+  .status .ic span { width: 14px; height: 8px; border-radius: 2px; border: 1.5px solid #1b1631; position: relative; }
+  .status .ic span::after { content: ""; position: absolute; inset: 1px 3px 1px 1px; background: #1b1631; border-radius: 1px; }
+  .screen h2 { font-size: 24px; font-weight: 600; letter-spacing: -.01em; padding: 30px 20px 14px; }
+  .search { margin: 0 14px 10px; height: 38px; border-radius: 19px; background: #e7e1fb; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 12px; color: #6b628f; }
+  .search svg { width: 15px; height: 15px; stroke: #6b628f; fill: none; stroke-width: 2.2; }
+  .item { position: relative; display: flex; align-items: center; gap: 13px; padding: 9px 20px; }
+  .item .ico { width: 30px; height: 30px; border-radius: 50%; background: var(--c); flex: none; display: grid; place-items: center; }
+  .item .ico::after { content: ""; width: 11px; height: 11px; border-radius: 3px; background: rgba(255, 255, 255, .85); }
+  .item b { display: block; font-size: 13px; font-weight: 600; }
+  .item small { display: block; font-size: 11px; color: #6b628f; margin-top: 1px; }
+  .item.hit { background: rgba(250, 204, 21, .16); }
+  .tap { position: absolute; left: 212px; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%;
+    border: 2.5px solid var(--yellow); background: rgba(250, 204, 21, .22); box-shadow: 0 0 0 9px rgba(250, 204, 21, .13), 0 0 24px rgba(250, 204, 21, .6); }
+  .gesture { position: absolute; bottom: 8px; left: 50%; width: 90px; height: 4px; margin-left: -45px; border-radius: 2px; background: #1b1631; opacity: .7; }
+</style>
+</head>
+<body>
+  <section class="left">
+    <img class="logo" src="../logo-dark.svg" alt="e2e-box">
+    <h1>Testes e2e no Android nativo, <em>direto pelo adb.</em></h1>
+    <p class="sub">Fluxos YAML no formato do Maestro, espelho do celular ao vivo e um gravador que transforma toques em passos.</p>
+    <div class="chips">
+      <span class="chip" style="--c: var(--yellow)"><i></i>tela lida em ~20 ms</span>
+      <span class="chip" style="--c: var(--green)"><i></i>espelho H.264 ~50 fps</span>
+      <span class="chip" style="--c: var(--red)"><i></i>gravador de fluxos</span>
+      <span class="chip" style="--c: var(--blue)"><i></i>vários celulares em paralelo</span>
+      <span class="chip" style="--c: var(--purple)"><i></i>CLI para CI</span>
+    </div>
+  </section>
+
+  <div class="repo mono">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    github.com/pedrolaxe/<b>e2e-box</b> · open source · MIT
+  </div>
+
+  <div class="card editor">
+    <div class="bar">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="name mono">configuracoes.yaml</span>
+      <span class="btn">▶ rodar</span><span class="btn ghost">5x</span>
+    </div>
+    <div class="code mono">
+      <div class="ln"><span class="st"></span><span class="n">1</span><span><span class="k">appId</span><span class="p">:</span> com.android.settings</span></div>
+      <div class="ln"><span class="st"></span><span class="n">2</span><span><span class="k">env</span><span class="p">:</span></span></div>
+      <div class="ln"><span class="st"></span><span class="n">3</span><span>  <span class="k">BUSCA</span><span class="p">:</span> Bateria</span></div>
+      <div class="ln"><span class="st"></span><span class="n">4</span><span class="p">---</span></div>
+      <div class="ln ok"><span class="st">✓</span><span class="n">5</span><span><span class="p">-</span> <span class="c">launchApp</span></span></div>
+      <div class="ln ok"><span class="st">✓</span><span class="n">6</span><span><span class="p">-</span> <span class="c">waitForAnimationToEnd</span></span></div>
+      <div class="ln ok"><span class="st">✓</span><span class="n">7</span><span><span class="p">-</span> <span class="c">scrollUntilVisible</span><span class="p">:</span></span></div>
+      <div class="ln"><span class="st"></span><span class="n">8</span><span>    <span class="k">element</span><span class="p">:</span> <span class="s">"<span class="v">${BUSCA}</span>|Battery"</span></span></div>
+      <div class="ln run"><span class="st">●</span><span class="n">9</span><span><span class="p">-</span> <span class="c">tapOn</span><span class="p">:</span> <span class="s">"<span class="v">${BUSCA}</span>|Battery"</span></span></div>
+      <div class="ln"><span class="st"></span><span class="n">10</span><span><span class="p">-</span> <span class="c">assertVisible</span><span class="p">:</span> <span class="s">".*(%|Bateria).*"</span></span></div>
+      <div class="ln"><span class="st"></span><span class="n">11</span><span><span class="p">-</span> <span class="c">takeScreenshot</span><span class="p">:</span> bateria</span></div>
+    </div>
+  </div>
+
+  <div class="card log">
+    <h3><i></i>log ao vivo <span class="mono">Pixel 8 · Android 15</span></h3>
+    <div class="row ok mono"><b>✓</b>launchApp com.android.settings<span class="t">0,9s</span></div>
+    <div class="row ok mono"><b>✓</b>scrollUntilVisible "Bateria"<span class="t">1,2s</span></div>
+    <div class="row run mono"><b>●</b>tapOn "Bateria|Battery"<span class="t">…</span></div>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="status"><span>9:41</span><span class="cam"></span><span class="ic">87% <span></span></span></div>
+      <h2>Configurações</h2>
+      <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Pesquisar configurações</div>
+      <div class="item" style="--c:#60a5fa"><span class="ico"></span><span><b>Rede e internet</b><small>Wi‑Fi, dados móveis</small></span></div>
+      <div class="item" style="--c:#2dd4bf"><span class="ico"></span><span><b>Dispositivos conectados</b><small>Bluetooth, pareamento</small></span></div>
+      <div class="item" style="--c:#a78bfa"><span class="ico"></span><span><b>Apps</b><small>Apps recentes, padrão</small></span></div>
+      <div class="item" style="--c:#f472b6"><span class="ico"></span><span><b>Notificações</b><small>Histórico, conversas</small></span></div>
+      <div class="item hit" style="--c:#4ade80"><span class="ico"></span><span><b>Bateria</b><small>87% · cerca de 1 dia</small></span><span class="tap"></span></div>
+      <div class="item" style="--c:#fb923c"><span class="ico"></span><span><b>Armazenamento</b><small>64% usado</small></span></div>
+      <div class="item" style="--c:#94a3b8"><span class="ico"></span><span><b>Tela</b><small>Tema escuro, fonte</small></span></div>
+      <span class="gesture"></span>
+    </div>
+  </div>
+</body>
+</html>
