@@ -11,6 +11,7 @@
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/e2e-box"><img src="https://img.shields.io/npm/v/e2e-box?style=flat-square&color=a78bfa" alt="npm version"></a>
   <img src="https://img.shields.io/badge/Android-adb-4ade80?style=flat-square" alt="Android over adb">
   <img src="https://img.shields.io/badge/flows-YAML%20(Maestro)-a78bfa?style=flat-square" alt="Maestro-style YAML flows">
   <img src="https://img.shields.io/badge/Next.js-15-1b1631?style=flat-square" alt="Next.js 15">
@@ -197,6 +198,12 @@ Not supported yet (skipped with a warning): `evalScript`, `runScript`, `setLocat
 
 Security: the API only accepts calls from its own page (local Host, the app's Origin and JSON); workspaces must live inside
 the folder that contains e2e-box, and subflows inside their workspace.
+
+## Contributing
+
+Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) for setup and conventions, and
+[CHANGELOG.md](CHANGELOG.md) for what changed in each version. Please report security issues privately, as described
+in [SECURITY.md](SECURITY.md). This project follows a [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

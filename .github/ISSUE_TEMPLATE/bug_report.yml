@@ -1,0 +1,56 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! For security issues, please use the private report in [SECURITY.md](https://github.com/pedrolaxe/e2e-box/blob/main/SECURITY.md) instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: flow
+    attributes:
+      label: Flow (YAML)
+      description: The smallest flow that reproduces the problem. Remove real credentials.
+      render: yaml
+  - type: textarea
+    id: output
+    attributes:
+      label: Output or error
+      description: CLI output (with `-v` if possible) or the error shown in the dashboard.
+      render: text
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options:
+        - CLI (npx e2e-box)
+        - Dashboard
+        - Both
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: e2e-box version
+      placeholder: "npx e2e-box --version"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: "Pixel 8, Android 15 (or emulator API 34)"
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: OS and Node version
+      placeholder: "Ubuntu 24.04, Node 22"

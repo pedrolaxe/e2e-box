@@ -1,0 +1,20 @@
+name: Feature request
+description: A new command, option or dashboard feature
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would it solve?
+      description: What you are trying to test or do today, and what gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed solution
+      description: How you imagine it working. For Maestro commands, link the Maestro docs and show an example flow.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
