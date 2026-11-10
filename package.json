@@ -1,6 +1,6 @@
 {
   "name": "e2e-box",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "End-to-end testing for native Android apps over adb, with Maestro-style YAML flows, a local dashboard with live device mirroring, a flow recorder and a CLI for CI",
   "keywords": [
     "android",
