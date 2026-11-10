@@ -1,4 +1,5 @@
 import { isMap, isScalar, isSeq, parseAllDocuments, type YAMLMap, type YAMLSeq } from 'yaml'
+import type { Lang } from './lang'
 
 // Aponta passos que passam hoje e quebram amanhã. Roda no editor (a cada alteração) e no início
 // da execução, então não pode depender de Node.
@@ -21,23 +22,38 @@ export const isRootId = (id: unknown) =>
 
 const TAPS = new Set(['tapOn', 'doubleTapOn', 'longPressOn'])
 
-const NO_SELECTOR = 'Seletor vazio: nunca encontra elemento e o passo falha. Grave o toque de novo ou apague o passo.'
+// O motor usa em português (log da execução); o editor do painel, no idioma escolhido.
+const MESSAGES = {
+  'pt-BR': {
+    noSelector: 'Seletor vazio: nunca encontra elemento e o passo falha. Grave o toque de novo ou apague o passo.',
+    iconFont: 'Ícone de fonte: o caractere muda se a fonte de ícones mudar, e não diz o que o botão faz.',
+    point: (p: unknown) => `Posição fixa (${p}): quebra com outro tamanho de tela ou se o layout mudar.`,
+    rootId: (id: unknown) => `"${id}" é a raiz da tela: o toque cai no meio dela, em qualquer elemento.`,
+  },
+  en: {
+    noSelector: 'Empty selector: never finds an element and the step fails. Record the tap again or delete the step.',
+    iconFont: 'Icon font glyph: the character changes if the icon font changes, and it does not say what the button does.',
+    point: (p: unknown) => `Fixed position (${p}): breaks on another screen size or if the layout changes.`,
+    rootId: (id: unknown) => `"${id}" is the screen root: the tap lands in its middle, on any element.`,
+  },
+} satisfies Record<Lang, unknown>
+type Msgs = (typeof MESSAGES)['pt-BR']
 
-function textProblem(text: unknown): string | null {
-  if (text === '' || text == null) return NO_SELECTOR
+function textProblem(text: unknown, m: Msgs): string | null {
+  if (text === '' || text == null) return m.noSelector
   // Faixas de uso privado do Unicode: é o desenho de um ícone, não um texto.
-  if (typeof text === 'string' && /[\uE000-\uF8FF]/.test(text)) return 'Ícone de fonte: o caractere muda se a fonte de ícones mudar, e não diz o que o botão faz.'
+  if (typeof text === 'string' && /[\uE000-\uF8FF]/.test(text)) return m.iconFont
   return null
 }
 
-function tapProblem(value: unknown): string | null {
-  if (isScalar(value)) return textProblem(value.value)
+function tapProblem(value: unknown, m: Msgs): string | null {
+  if (isScalar(value)) return textProblem(value.value, m)
   if (!isMap(value)) return null
   const get = (key: string) => (value as YAMLMap).get(key)
-  const text = get('text') === undefined ? null : textProblem(get('text'))
+  const text = get('text') === undefined ? null : textProblem(get('text'), m)
   if (text) return text
-  if (get('point') != null) return `Posição fixa (${get('point')}): quebra com outro tamanho de tela ou se o layout mudar.`
-  if (isRootId(get('id'))) return `"${get('id')}" é a raiz da tela: o toque cai no meio dela, em qualquer elemento.`
+  if (get('point') != null) return m.point(get('point'))
+  if (isRootId(get('id'))) return m.rootId(get('id'))
   return null
 }
 
@@ -71,7 +87,8 @@ export function stepAt(text: string, offset: number): number | null {
   return found >= 0 ? found : items.length - 1
 }
 
-export function lintFlow(text: string): FlowIssue[] {
+export function lintFlow(text: string, lang: Lang = 'pt-BR'): FlowIssue[] {
+  const m = MESSAGES[lang]
   const issues: FlowIssue[] = []
   const lineOf = (offset: number) => text.slice(0, offset).split('\n').length
 
@@ -82,7 +99,7 @@ export function lintFlow(text: string): FlowIssue[] {
       const { key, value } = item.items[0]
       const name = isScalar(key) ? String(key.value) : ''
       if (TAPS.has(name)) {
-        const message = tapProblem(value)
+        const message = tapProblem(value, m)
         // O range do yaml inclui a quebra de linha: fica de fora, senão a troca juntaria dois passos.
         const end = item.range ? item.range[0] + text.slice(item.range[0], item.range[1]).trimEnd().length : 0
         if (message && item.range) issues.push({ path, line: lineOf(item.range[0]), start: item.range[0], end, message, canSuggest: isMap(value) && (value.get('point') != null || isRootId(value.get('id'))) })

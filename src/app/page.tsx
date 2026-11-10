@@ -6,6 +6,8 @@ import { NewFlowModal } from '@/components/NewFlowModal'
 import { RunDetail } from '@/components/RunDetail'
 import { Phone, type Gesture } from '@/components/Phone'
 import type { RepeatResult, RunEvent, RunStats, StepStatus } from '@/lib/engine'
+import { useI18n } from '@/lib/i18n'
+import { LANGS } from '@/lib/lang'
 import { lintFlow, repairFlow, stepAt, withSeparator, type FlowIssue } from '@/lib/lint'
 
 interface FlowFile {
@@ -58,7 +60,6 @@ const EMPTY_STATS: RunStats = { steps: 0, done: 0, taps: 0, inputs: 0, checksOk:
 /** Fluxo que passou sem conferir nada aparece em outra cor. */
 const dotClass = (r: { status: string; checks?: number; partial?: string | boolean } | null | undefined) =>
   r?.status === 'passed' && r.checks === 0 && !r.partial ? 'unchecked' : (r?.status ?? '')
-const time = (t: number) => new Date(t).toLocaleTimeString('pt-BR', { hour12: false })
 const secs = (ms?: number) => (ms == null ? '' : ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`)
 
 async function api<T>(url: string, init?: RequestInit & { json?: unknown }): Promise<T> {
@@ -68,11 +69,16 @@ async function api<T>(url: string, init?: RequestInit & { json?: unknown }): Pro
     body: init?.json ? JSON.stringify(init.json) : init?.body,
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error ?? `erro ${res.status}`)
+  if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
   return data
 }
 
 export default function Home() {
+  const { t, lang, setLang } = useI18n()
+  const time = (at: number) => new Date(at).toLocaleTimeString(t.locale, { hour12: false })
+  /** Efeitos de longa duração (SSE, polling) leem o idioma atual sem reconectar. */
+  const tRef = useRef(t)
+  tRef.current = t
   // 0 até montar: o relógio só aparece no cliente (evita divergência de hidratação).
   const [now, setNow] = useState(0)
   const [device, setDevice] = useState<DeviceInfo | null>(null)
@@ -177,8 +183,8 @@ export default function Home() {
     const poll = async () => {
       const next = await loadDevice()
       const serial = next?.serial ?? null
-      if (lastOnline.current && !serial) notify('Celular desconectado')
-      else if (lastOnline.current === null && serial) notify('Celular conectado', 'info')
+      if (lastOnline.current && !serial) notify(tRef.current.deviceDisconnected)
+      else if (lastOnline.current === null && serial) notify(tRef.current.deviceConnected, 'info')
       lastOnline.current = serial
       if (alive) timer = setTimeout(poll, serial ? 6000 : 2000)
     }
@@ -232,7 +238,7 @@ export default function Home() {
           setLastRun(null)
           setHints({})
           setRepeat((r) => (r?.active ? r : null))
-          setLogs([{ at: e.at, level: 'info', msg: `e2e-box> rodando ${e.ref} em ${e.serial}`, depth: 0 }])
+          setLogs([{ at: e.at, level: 'info', msg: tRef.current.runningLog(e.ref, e.serial ?? ''), depth: 0 }])
           break
         case 'step-start':
           if (e.depth === 0) setSteps((s) => s.map((x, i) => (String(i) === e.stepId ? { ...x, status: 'running' } : x)))
@@ -269,7 +275,7 @@ export default function Home() {
           setStats(e.stats)
           setLastRun({ status: e.status, ms: e.ms, error: e.error, runId: e.runId, ref: '', checks: e.stats.checksOk, partial: partialRun.current })
           setSteps((s) => s.map((x) => (x.status === 'running' ? { ...x, status: e.status === 'stopped' ? 'skipped' : 'failed' } : x)))
-          setLogs((l) => [...l, { at: e.at, level: e.status === 'passed' ? 'ok' : 'fail', msg: `e2e-box> ${e.status === 'passed' ? 'passou' : e.status === 'stopped' ? 'parado' : 'falhou'} · ${e.stats.done}/${e.stats.steps} passos · ${secs(e.ms)}${e.error ? ` · ${e.error}` : ''}`, depth: 0 }])
+          setLogs((l) => [...l, { at: e.at, level: e.status === 'passed' ? 'ok' : 'fail', msg: `${tRef.current.runEndLog(e.status, e.stats.done, e.stats.steps, secs(e.ms))}${e.error ? ` · ${e.error}` : ''}`, depth: 0 }])
           loadFlows()
           break
       }
@@ -292,17 +298,17 @@ export default function Home() {
       setSaved(fixed)
       setParseError(res.error)
       const fragile = lintFlow(fixed).length
-      if (!res.error && fragile) notify(`Salvo · ${fragile} ${fragile === 1 ? 'passo frágil' : 'passos frágeis'}`, 'info')
+      if (!res.error && fragile) notify(t.savedFragile(fragile), 'info')
       return !res.error
     } catch (e) {
       notify((e as Error).message)
       return false
     }
-  }, [selected, content, notify])
+  }, [selected, content, notify, t])
 
   const run = useCallback(async (times = 1, range?: { from: number; to?: number }) => {
     if (!selected || running) return
-    if (dirty && !(await save())) return notify('Corrija o YAML antes de rodar')
+    if (dirty && !(await save())) return notify(t.fixYamlFirst)
     const vars = Object.fromEntries(
       env.split(/[\s,;]+/).filter((p) => p.includes('=')).map((p) => [p.slice(0, p.indexOf('=')), p.slice(p.indexOf('=') + 1)]),
     )
@@ -312,11 +318,11 @@ export default function Home() {
     } catch (e) {
       notify((e as Error).message)
     }
-  }, [selected, running, dirty, save, env, notify])
+  }, [selected, running, dirty, save, env, notify, t])
 
   const stop = () => api('/api/run', { method: 'DELETE' })
 
-  const issues = useMemo(() => lintFlow(content), [content])
+  const issues = useMemo(() => lintFlow(content, lang), [content, lang])
   const cursorStep = useMemo(() => (cursorPos == null ? null : stepAt(content, cursorPos)), [content, cursorPos])
 
   /** Leva o cursor do editor até o passo. */
@@ -348,7 +354,7 @@ export default function Home() {
     setNewFlowWs(null)
     await loadFlows()
     await openFlow(ref)
-    notify(`Fluxo ${name} criado`, 'info')
+    notify(t.flowCreated(name), 'info')
   }
 
   /** Insere um passo na linha depois do cursor (ou no fim). */
@@ -378,8 +384,8 @@ export default function Home() {
   }, [dirty])
 
   const stopRecording = useCallback(async () => {
-    if (dirty && (await save())) notify('Gravação parada e fluxo salvo', 'info')
-  }, [dirty, save, notify])
+    if (dirty && (await save())) notify(t.recordingSaved, 'info')
+  }, [dirty, save, notify, t])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -405,7 +411,7 @@ export default function Home() {
   const status = running ? 'live' : unchecked ? 'warn' : lastRun?.status === 'passed' ? 'ok' : lastRun?.status === 'failed' ? 'bad' : ''
   const repeatFailures = Object.entries(
     (repeat?.results ?? []).reduce<Record<string, number>>((acc, r) => {
-      if (r.status === 'failed') acc[r.step ?? 'desconhecido'] = (acc[r.step ?? 'desconhecido'] ?? 0) + 1
+      if (r.status === 'failed') acc[r.step ?? t.unknownStep] = (acc[r.step ?? t.unknownStep] ?? 0) + 1
       return acc
     }, {}),
   )
@@ -416,10 +422,10 @@ export default function Home() {
   return (
     <div className="app">
       <header className="header">
-        <div className="logo" aria-hidden="true">&gt;_</div>
+        <img className="logo" src="/icon.svg" alt="" aria-hidden="true" />
         <h1 className="brand">e2e-box</h1>
         <label className="device-field">
-          <span>Celular</span>
+          <span>{t.device}</span>
           {device?.devices.length ? (
             <select
               className="device"
@@ -429,22 +435,22 @@ export default function Home() {
                 loadDevice()
               }}
             >
-              {!device.serial && <option value="" disabled>escolha…</option>}
+              {!device.serial && <option value="" disabled>{t.choose}</option>}
               {device.devices.map((d) => (
                 <option key={d.serial} value={d.serial}>
-                  {d.model ?? d.serial}{d.state !== 'device' ? ` (${d.state})` : ''}{device.runningSerials?.includes(d.serial) ? ', rodando' : ''}
+                  {d.model ?? d.serial}{d.state !== 'device' ? ` (${d.state})` : ''}{device.runningSerials?.includes(d.serial) ? t.runningSuffix : ''}
                 </option>
               ))}
             </select>
           ) : (
-            <b>nenhum conectado</b>
+            <b>{t.noneConnected}</b>
           )}
         </label>
         {device?.info && <span className="meta">Android {device.info.android}, {device.info.transport ?? 'adb'}</span>}
         <div className="spacer" />
         {device?.busy && <span className="busy-note" title={device.busy}>{device.busy}</span>}
         {battery && (
-          <span className="battery" title={battery.charging ? 'Carregando' : 'Na bateria'}>
+          <span className="battery" title={battery.charging ? t.charging : t.onBattery}>
             <span className="cell">
               <span className="fill" style={{ display: 'block', width: `${battery.level}%`, background: battery.level < 20 ? 'var(--red)' : undefined }} />
             </span>
@@ -452,27 +458,34 @@ export default function Home() {
             {battery.level}%
           </span>
         )}
-        <button className="icon-btn square" onClick={toggleTheme} title={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'} aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}>
+        <div className="lang-switch" role="group" aria-label={t.language}>
+          {LANGS.map((l) => (
+            <button key={l.id} className={lang === l.id ? 'on' : ''} aria-pressed={lang === l.id} onClick={() => setLang(l.id)} title={l.name} lang={l.id}>
+              {l.short}
+            </button>
+          ))}
+        </div>
+        <button className="icon-btn square" onClick={toggleTheme} title={theme === 'dark' ? t.useLight : t.useDark} aria-label={theme === 'dark' ? t.useLight : t.useDark}>
           {theme === 'dark' ? '☀' : '☾'}
         </button>
       </header>
 
-      <section className="card run-strip" aria-label="Execução atual">
+      <section className="card run-strip" aria-label={t.currentRun}>
         <div className="run-line">
           <span className={`pill ${status}`}>
             <span className="dot" />
-            {running ? 'Rodando' : lastRun ? (unchecked ? 'Passou sem checks' : lastRun.status === 'passed' ? 'Passou' : lastRun.status === 'stopped' ? 'Parado' : 'Falhou') : 'Pronto'}
+            {running ? t.pillRunning : lastRun ? (unchecked ? t.pillUnchecked : lastRun.status === 'passed' ? t.pillPassed : lastRun.status === 'stopped' ? t.pillStopped : t.pillFailed) : t.pillReady}
           </span>
           <div className="run-name">
-            <b>{runRef ? runRef.split(':')[1] : 'Nenhuma execução ainda'}</b>
+            <b>{runRef ? runRef.split(':')[1] : t.noRunYet}</b>
             {runRef && <span>{secs(elapsed)}</span>}
           </div>
           <dl className="metrics">
-            <div><dt>Passos</dt><dd>{stats.done}<small>/{stats.steps || steps.length}</small></dd></div>
-            <div><dt>Toques</dt><dd>{stats.taps}</dd></div>
-            <div><dt>Textos</dt><dd>{stats.inputs}</dd></div>
-            <div className={unchecked ? 'warn' : ''} title={unchecked ? 'Nenhum passo conferiu o resultado' : 'Asserts e esperas que deram certo'}><dt>Checks</dt><dd>{stats.checksOk}</dd></div>
-            <div className={stats.checksFailed || failedStep ? 'bad' : ''}><dt>Falhas</dt><dd>{stats.checksFailed + (failedStep && !stats.checksFailed ? 1 : 0)}</dd></div>
+            <div><dt>{t.mSteps}</dt><dd>{stats.done}<small>/{stats.steps || steps.length}</small></dd></div>
+            <div><dt>{t.mTaps}</dt><dd>{stats.taps}</dd></div>
+            <div><dt>{t.mInputs}</dt><dd>{stats.inputs}</dd></div>
+            <div className={unchecked ? 'warn' : ''} title={unchecked ? t.noChecksTitle : t.checksTitle}><dt>{t.mChecks}</dt><dd>{stats.checksOk}</dd></div>
+            <div className={stats.checksFailed || failedStep ? 'bad' : ''}><dt>{t.mFailures}</dt><dd>{stats.checksFailed + (failedStep && !stats.checksFailed ? 1 : 0)}</dd></div>
           </dl>
           <Bots active={botActive.current} failAt={checkerFailAt.current} now={now} />
         </div>
@@ -486,14 +499,14 @@ export default function Home() {
 
       <section className="body">
         <div className="col">
-          <nav className="card sidebar" aria-label="Fluxos">
+          <nav className="card sidebar" aria-label={t.flows}>
             {flowsByWs.map((ws) => {
               const flowButton = (f: FlowFile) => (
                 <button
                   key={f.ref}
                   className={`flow ${f.subflow ? 'sub' : ''} ${f.ref === selected ? 'active' : ''}`}
                   aria-current={f.ref === selected ? 'true' : undefined}
-                  onClick={() => (dirty && !window.confirm('Descartar alterações não salvas?') ? null : openFlow(f.ref))}
+                  onClick={() => (dirty && !window.confirm(t.discardChanges) ? null : openFlow(f.ref))}
                   title={f.rel}
                 >
                   <span className={`sdot ${running && runRef === f.ref ? 'running' : dotClass(f.lastRun)}`} />
@@ -505,29 +518,29 @@ export default function Home() {
                 <div key={ws.id} className="ws">
                   <div className="ws-title">
                     <h2 title={ws.appId}>{ws.name}</h2>
-                    <button className="icon-btn" onClick={() => setNewFlowWs(ws.id)} title={`Novo fluxo em ${ws.name}`} aria-label={`Novo fluxo em ${ws.name}`}>+</button>
+                    <button className="icon-btn" onClick={() => setNewFlowWs(ws.id)} title={t.newFlowIn(ws.name)} aria-label={t.newFlowIn(ws.name)}>+</button>
                   </div>
-                  {ws.files.length === 0 && <p className="side-empty">Nenhum fluxo. Crie o primeiro com +.</p>}
+                  {ws.files.length === 0 && <p className="side-empty">{t.noFlows}</p>}
                   {ws.files.filter((f) => !f.subflow).map(flowButton)}
-                  {subflows.length > 0 && <div className="ws-sub">Subfluxos</div>}
+                  {subflows.length > 0 && <div className="ws-sub">{t.subflows}</div>}
                   {subflows.map(flowButton)}
                 </div>
               )
             })}
           </nav>
           <div className="card runs">
-            <div className="ws-title"><h2>Execuções</h2></div>
-            {runs.length === 0 && <p className="side-empty">Rode um fluxo para ver o histórico.</p>}
+            <div className="ws-title"><h2>{t.runs}</h2></div>
+            {runs.length === 0 && <p className="side-empty">{t.noRuns}</p>}
             {runs.map((r) => (
               <button
                 key={r.runId}
                 className="run-row"
-                title={r.error ?? `Ver a execução (${secs(r.ms)})`}
+                title={r.error ?? t.viewRun(secs(r.ms))}
                 onClick={() => setDetailRun(r.runId)}
               >
                 <span className={`sdot ${dotClass(r)}`} />
                 <span className="name">{r.ref.split(':')[1]?.replace(/\.ya?ml$/i, '')}{r.partial ? `, ${r.partial}` : ''}</span>
-                <span className="when">{new Date(r.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="when">{new Date(r.startedAt).toLocaleTimeString(t.locale, { hour: '2-digit', minute: '2-digit' })}</span>
               </button>
             ))}
           </div>
@@ -544,11 +557,11 @@ export default function Home() {
               <button className={`tab ${tab === 'adb' ? 'on' : ''}`} onClick={() => setTab('adb')}>adb</button>
               <div className="right">
                 {running ? (
-                  <button className="btn stop" onClick={stop}>■ Parar</button>
+                  <button className="btn stop" onClick={stop}>{t.stop}</button>
                 ) : (
                   <>
-                    <button className="btn" disabled={!selected || !device?.serial} onClick={() => run(5)} title="Roda 5 vezes seguidas para achar instabilidade">5x</button>
-                    <button className="btn run" disabled={!selected || !device?.serial} onClick={() => run()} title={device?.serial ? 'Ctrl+Enter' : 'Conecte um celular'}>▶ Rodar</button>
+                    <button className="btn" disabled={!selected || !device?.serial} onClick={() => run(5)} title={t.run5Title}>5x</button>
+                    <button className="btn run" disabled={!selected || !device?.serial} onClick={() => run()} title={device?.serial ? 'Ctrl+Enter' : t.connectDevice}>{t.run}</button>
                   </>
                 )}
               </div>
@@ -556,33 +569,33 @@ export default function Home() {
             <div className="toolbar">
               {tab === 'yaml' ? (
                 <>
-                  <input className="env" aria-label="Variáveis do fluxo" placeholder="Variáveis: CPF=123 USER=x" value={env} onChange={(e) => setEnv(e.target.value)} />
-                  <button className="btn" disabled={!dirty} onClick={save} title="Ctrl+S">Salvar</button>
+                  <input className="env" aria-label={t.envLabel} placeholder={t.envPlaceholder} value={env} onChange={(e) => setEnv(e.target.value)} />
+                  <button className="btn" disabled={!dirty} onClick={save} title="Ctrl+S">{t.save}</button>
                   {!running && cursorStep != null && (
                     <span className="toolbar-end">
-                      <button className="btn" disabled={!device?.serial} onClick={() => run(1, { from: cursorStep, to: cursorStep })} title="Roda só o passo em que o cursor está, na tela atual do celular">▶ Passo {cursorStep + 1}</button>
-                      <button className="btn" disabled={!device?.serial} onClick={() => run(1, { from: cursorStep })} title="Roda deste passo até o fim, na tela atual do celular">▶ Daqui</button>
+                      <button className="btn" disabled={!device?.serial} onClick={() => run(1, { from: cursorStep, to: cursorStep })} title={t.runStepTitle}>{t.runStep(cursorStep + 1)}</button>
+                      <button className="btn" disabled={!device?.serial} onClick={() => run(1, { from: cursorStep })} title={t.runFromTitle}>{t.runFrom}</button>
                     </span>
                   )}
                 </>
               ) : (
                 <>
-                  <span className="toolbar-note">{visibleLogs.length} {visibleLogs.length === 1 ? 'linha' : 'linhas'}</span>
-                  <span className="toolbar-end"><button className="btn" onClick={() => setLogs([])}>Limpar</button></span>
+                  <span className="toolbar-note">{t.lines(visibleLogs.length)}</span>
+                  <span className="toolbar-end"><button className="btn" onClick={() => setLogs([])}>{t.clear}</button></span>
                 </>
               )}
             </div>
             {tab === 'yaml' && selected && issues.length > 0 && (
               <details className="lint">
-                <summary>⚠ {issues.length} {issues.length === 1 ? 'passo frágil' : 'passos frágeis'}</summary>
+                <summary>⚠ {t.fragile(issues.length)}</summary>
                 {issues.map((issue) => (
                   <div key={issue.start} className="lint-row">
-                    <button className="lint-line" onClick={() => goToIssue(issue)} title="Ir para o passo">L{issue.line}</button>
+                    <button className="lint-line" onClick={() => goToIssue(issue)} title={t.goToStep}>L{issue.line}</button>
                     <span className="lint-msg">{issue.message}</span>
                     {hints[issue.path] ? (
-                      <button className="chip" onClick={() => applyHint(issue, hints[issue.path].yaml)} title={hints[issue.path].yaml}>trocar por {hints[issue.path].label}</button>
+                      <button className="chip" onClick={() => applyHint(issue, hints[issue.path].yaml)} title={hints[issue.path].yaml}>{t.replaceWith(hints[issue.path].label)}</button>
                     ) : issue.canSuggest ? (
-                      <span className="lint-tip">rode o fluxo para ver a sugestão</span>
+                      <span className="lint-tip">{t.runForHint}</span>
                     ) : null}
                   </div>
                 ))}
@@ -596,7 +609,7 @@ export default function Home() {
                   </pre>
                   <textarea
                     ref={textareaRef}
-                    aria-label="Conteúdo do fluxo em YAML"
+                    aria-label={t.yamlContent}
                     value={content}
                     spellCheck={false}
                     onChange={(e) => setContent(e.target.value)}
@@ -617,20 +630,20 @@ export default function Home() {
                       }
                     }}
                   />
-                  {parseError && <div className="parse-error">YAML inválido: {parseError}</div>}
+                  {parseError && <div className="parse-error">{t.invalidYaml} {parseError}</div>}
                 </div>
               ) : (
-                <div className="empty">Escolha um fluxo à esquerda ou crie um com +.</div>
+                <div className="empty">{t.pickFlow}</div>
               )
             ) : (
               <div className="log" ref={logRef}>
-                {visibleLogs.length === 0 && <div className="empty">Rode um fluxo ou use o espelho para ver o log.</div>}
+                {visibleLogs.length === 0 && <div className="empty">{t.noLog}</div>}
                 {visibleLogs.map((l, i) => (
                   <div key={i} className={`ln ${l.level} ${l.manual ? 'manual' : ''}`}>
                     <span className="t">{time(l.at)}</span>
                     <span className="bar" />
                     <span className="m" style={{ paddingLeft: l.depth * 14 }}>
-                      {l.manual ? 'você> ' : ''}
+                      {l.manual ? t.you : ''}
                       {l.msg}
                     </span>
                   </div>
@@ -641,7 +654,7 @@ export default function Home() {
           </div>
           <div className="card queue">
             <div className="queue-head">
-              <span>Fila de passos</span>
+              <span>{t.queue}</span>
               <span>
                 {steps.filter((s) => s.status === 'passed').length}/{steps.length}
               </span>
@@ -649,8 +662,8 @@ export default function Home() {
             {repeat && (
               <div className="repeat-bar">
                 <div className="repeat-sum">
-                  <b>{repeat.active ? `Rodando ${Math.min(repeat.results.length + 1, repeat.times)}/${repeat.times}` : `${repeat.results.length}/${repeat.times} rodadas`}</b>
-                  <span>{repeat.results.filter((r) => r.status === 'passed').length} passaram · {repeat.results.filter((r) => r.status === 'failed').length} falharam</span>
+                  <b>{repeat.active ? t.repeatRunning(Math.min(repeat.results.length + 1, repeat.times), repeat.times) : t.repeatRounds(repeat.results.length, repeat.times)}</b>
+                  <span>{t.repeatSummary(repeat.results.filter((r) => r.status === 'passed').length, repeat.results.filter((r) => r.status === 'failed').length)}</span>
                   <span className="repeat-dots">
                     {repeat.results.map((r, i) => (
                       <span key={i} className={`sdot ${r.status}`} title={r.error ?? secs(r.ms)} />
@@ -658,12 +671,12 @@ export default function Home() {
                   </span>
                 </div>
                 {repeatFailures.map(([step, count]) => (
-                  <div key={step} className="repeat-fail" title={step}>falhou {count}x em {step}</div>
+                  <div key={step} className="repeat-fail" title={step}>{t.failedAt(count, step)}</div>
                 ))}
               </div>
             )}
             <div className="queue-list">
-              {steps.length === 0 && <div className="q"><span className="label" style={{ color: 'var(--muted)' }}>Rode um fluxo para ver os passos aqui.</span></div>}
+              {steps.length === 0 && <div className="q"><span className="label" style={{ color: 'var(--muted)' }}>{t.noSteps}</span></div>}
               {steps.map((s, i) => (
                 <div key={i} className={`q ${s.status}`}>
                   <span className={`check ${s.status}`}>{s.status === 'passed' ? '✓' : s.status === 'failed' ? '✕' : s.status === 'warned' || s.status === 'skipped' ? '–' : ''}</span>

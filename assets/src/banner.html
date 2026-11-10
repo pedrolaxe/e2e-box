@@ -1,7 +1,10 @@
 <!doctype html>
-<!-- Fonte do assets/banner.png. Gerar (1280x640 a 2x):
-     google-chrome --headless=new --hide-scrollbars --force-device-scale-factor=2 --window-size=1280,640 \
-       --virtual-time-budget=5000 --screenshot=assets/banner.png assets/src/banner.html -->
+<!-- Fonte do assets/banner.png (inglês, usado no README) e do assets/banner-pt.png. Texto em pt-BR aqui;
+     com ?lang=en, o script no fim troca pelos textos em inglês. Gerar (1280x640 a 2x), na raiz do repo:
+     google-chrome --headless=new --hide-scrollbars --allow-file-access-from-files --force-device-scale-factor=2 \
+       --window-size=1280,640 --virtual-time-budget=6000 --user-data-dir=$(mktemp -d) --screenshot=assets/banner.png "file://$PWD/assets/src/banner.html?lang=en"
+     google-chrome --headless=new --hide-scrollbars --allow-file-access-from-files --force-device-scale-factor=2 \
+       --window-size=1280,640 --virtual-time-budget=6000 --user-data-dir=$(mktemp -d) --screenshot=assets/banner-pt.png "file://$PWD/assets/src/banner.html" -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -76,7 +79,7 @@
   .log { left: 612px; top: 438px; width: 336px; padding: 14px 16px 12px; background: rgba(27, 22, 49, .96); }
   .log h3 { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .log h3 i { width: 7px; height: 7px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); }
-  .log h3 span { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 500; }
+  .log h3 .mono { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 500; }
   .row { display: flex; gap: 8px; font-size: 12.5px; line-height: 22px; color: #cdc7ef; white-space: nowrap; }
   .row .t { margin-left: auto; color: var(--dim); }
   .row.ok b { color: var(--green); font-weight: 400; }
@@ -112,14 +115,14 @@
 <body>
   <section class="left">
     <img class="logo" src="../logo-dark.svg" alt="e2e-box">
-    <h1>Testes e2e no Android nativo, <em>direto pelo adb.</em></h1>
-    <p class="sub">Fluxos YAML no formato do Maestro, espelho do celular ao vivo e um gravador que transforma toques em passos.</p>
+    <h1 data-i18n="h1">Testes e2e no Android nativo, <em>direto pelo adb.</em></h1>
+    <p class="sub" data-i18n="sub">Fluxos YAML no formato do Maestro, espelho do celular ao vivo e um gravador que transforma toques em passos.</p>
     <div class="chips">
-      <span class="chip" style="--c: var(--yellow)"><i></i>tela lida em ~20 ms</span>
-      <span class="chip" style="--c: var(--green)"><i></i>espelho H.264 ~50 fps</span>
-      <span class="chip" style="--c: var(--red)"><i></i>gravador de fluxos</span>
-      <span class="chip" style="--c: var(--blue)"><i></i>vários celulares em paralelo</span>
-      <span class="chip" style="--c: var(--purple)"><i></i>CLI para CI</span>
+      <span class="chip" style="--c: var(--yellow)"><i></i><span data-i18n="c1">tela lida em ~20 ms</span></span>
+      <span class="chip" style="--c: var(--green)"><i></i><span data-i18n="c2">espelho H.264 ~50 fps</span></span>
+      <span class="chip" style="--c: var(--red)"><i></i><span data-i18n="c3">gravador de fluxos</span></span>
+      <span class="chip" style="--c: var(--blue)"><i></i><span data-i18n="c4">vários celulares em paralelo</span></span>
+      <span class="chip" style="--c: var(--purple)"><i></i><span data-i18n="c5">CLI para CI</span></span>
     </div>
   </section>
 
@@ -131,45 +134,72 @@
   <div class="card editor">
     <div class="bar">
       <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-      <span class="name mono">configuracoes.yaml</span>
-      <span class="btn">▶ rodar</span><span class="btn ghost">5x</span>
+      <span class="name mono" data-i18n="file">configuracoes.yaml</span>
+      <span class="btn" data-i18n="run">▶ rodar</span><span class="btn ghost">5x</span>
     </div>
     <div class="code mono">
       <div class="ln"><span class="st"></span><span class="n">1</span><span><span class="k">appId</span><span class="p">:</span> com.android.settings</span></div>
       <div class="ln"><span class="st"></span><span class="n">2</span><span><span class="k">env</span><span class="p">:</span></span></div>
-      <div class="ln"><span class="st"></span><span class="n">3</span><span>  <span class="k">BUSCA</span><span class="p">:</span> Bateria</span></div>
+      <div class="ln"><span class="st"></span><span class="n">3</span><span data-i18n="l3">  <span class="k">BUSCA</span><span class="p">:</span> Bateria</span></div>
       <div class="ln"><span class="st"></span><span class="n">4</span><span class="p">---</span></div>
       <div class="ln ok"><span class="st">✓</span><span class="n">5</span><span><span class="p">-</span> <span class="c">launchApp</span></span></div>
       <div class="ln ok"><span class="st">✓</span><span class="n">6</span><span><span class="p">-</span> <span class="c">waitForAnimationToEnd</span></span></div>
       <div class="ln ok"><span class="st">✓</span><span class="n">7</span><span><span class="p">-</span> <span class="c">scrollUntilVisible</span><span class="p">:</span></span></div>
-      <div class="ln"><span class="st"></span><span class="n">8</span><span>    <span class="k">element</span><span class="p">:</span> <span class="s">"<span class="v">${BUSCA}</span>|Battery"</span></span></div>
-      <div class="ln run"><span class="st">●</span><span class="n">9</span><span><span class="p">-</span> <span class="c">tapOn</span><span class="p">:</span> <span class="s">"<span class="v">${BUSCA}</span>|Battery"</span></span></div>
-      <div class="ln"><span class="st"></span><span class="n">10</span><span><span class="p">-</span> <span class="c">assertVisible</span><span class="p">:</span> <span class="s">".*(%|Bateria).*"</span></span></div>
-      <div class="ln"><span class="st"></span><span class="n">11</span><span><span class="p">-</span> <span class="c">takeScreenshot</span><span class="p">:</span> bateria</span></div>
+      <div class="ln"><span class="st"></span><span class="n">8</span><span data-i18n="l8">    <span class="k">element</span><span class="p">:</span> <span class="s">"<span class="v">${BUSCA}</span>|Battery"</span></span></div>
+      <div class="ln run"><span class="st">●</span><span class="n">9</span><span data-i18n="l9"><span class="p">-</span> <span class="c">tapOn</span><span class="p">:</span> <span class="s">"<span class="v">${BUSCA}</span>|Battery"</span></span></div>
+      <div class="ln"><span class="st"></span><span class="n">10</span><span data-i18n="l10"><span class="p">-</span> <span class="c">assertVisible</span><span class="p">:</span> <span class="s">".*(%|Bateria).*"</span></span></div>
+      <div class="ln"><span class="st"></span><span class="n">11</span><span data-i18n="l11"><span class="p">-</span> <span class="c">takeScreenshot</span><span class="p">:</span> bateria</span></div>
     </div>
   </div>
 
   <div class="card log">
-    <h3><i></i>log ao vivo <span class="mono">Pixel 8 · Android 15</span></h3>
-    <div class="row ok mono"><b>✓</b>launchApp com.android.settings<span class="t">0,9s</span></div>
-    <div class="row ok mono"><b>✓</b>scrollUntilVisible "Bateria"<span class="t">1,2s</span></div>
-    <div class="row run mono"><b>●</b>tapOn "Bateria|Battery"<span class="t">…</span></div>
+    <h3><i></i><span data-i18n="live">log ao vivo</span> <span class="mono">Pixel 8 · Android 15</span></h3>
+    <div class="row ok mono"><b>✓</b>launchApp com.android.settings<span class="t" data-i18n="t1">0,9s</span></div>
+    <div class="row ok mono"><b>✓</b><span data-i18n="log2">scrollUntilVisible "Bateria"</span><span class="t" data-i18n="t2">1,2s</span></div>
+    <div class="row run mono"><b>●</b><span data-i18n="log3">tapOn "Bateria|Battery"</span><span class="t">…</span></div>
   </div>
 
   <div class="phone">
     <div class="screen">
       <div class="status"><span>9:41</span><span class="cam"></span><span class="ic">87% <span></span></span></div>
-      <h2>Configurações</h2>
-      <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Pesquisar configurações</div>
-      <div class="item" style="--c:#60a5fa"><span class="ico"></span><span><b>Rede e internet</b><small>Wi‑Fi, dados móveis</small></span></div>
-      <div class="item" style="--c:#2dd4bf"><span class="ico"></span><span><b>Dispositivos conectados</b><small>Bluetooth, pareamento</small></span></div>
-      <div class="item" style="--c:#a78bfa"><span class="ico"></span><span><b>Apps</b><small>Apps recentes, padrão</small></span></div>
-      <div class="item" style="--c:#f472b6"><span class="ico"></span><span><b>Notificações</b><small>Histórico, conversas</small></span></div>
-      <div class="item hit" style="--c:#4ade80"><span class="ico"></span><span><b>Bateria</b><small>87% · cerca de 1 dia</small></span><span class="tap"></span></div>
-      <div class="item" style="--c:#fb923c"><span class="ico"></span><span><b>Armazenamento</b><small>64% usado</small></span></div>
-      <div class="item" style="--c:#94a3b8"><span class="ico"></span><span><b>Tela</b><small>Tema escuro, fonte</small></span></div>
+      <h2 data-i18n="settings">Configurações</h2>
+      <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span data-i18n="search">Pesquisar configurações</span></div>
+      <div class="item" style="--c:#60a5fa"><span class="ico"></span><span data-i18n="i1"><b>Rede e internet</b><small>Wi‑Fi, dados móveis</small></span></div>
+      <div class="item" style="--c:#2dd4bf"><span class="ico"></span><span data-i18n="i2"><b>Dispositivos conectados</b><small>Bluetooth, pareamento</small></span></div>
+      <div class="item" style="--c:#a78bfa"><span class="ico"></span><span data-i18n="i3"><b>Apps</b><small>Apps recentes, padrão</small></span></div>
+      <div class="item" style="--c:#f472b6"><span class="ico"></span><span data-i18n="i4"><b>Notificações</b><small>Histórico, conversas</small></span></div>
+      <div class="item hit" style="--c:#4ade80"><span class="ico"></span><span data-i18n="i5"><b>Bateria</b><small>87% · cerca de 1 dia</small></span><span class="tap"></span></div>
+      <div class="item" style="--c:#fb923c"><span class="ico"></span><span data-i18n="i6"><b>Armazenamento</b><small>64% usado</small></span></div>
+      <div class="item" style="--c:#94a3b8"><span class="ico"></span><span data-i18n="i7"><b>Tela</b><small>Tema escuro, fonte</small></span></div>
       <span class="gesture"></span>
     </div>
   </div>
+  <script>
+    // ?lang=en: troca os textos marcados com data-i18n pelos em inglês.
+    const EN = {
+      h1: 'End-to-end tests for native Android, <em>straight over adb.</em>',
+      sub: 'Maestro-style YAML flows, a live device mirror and a recorder that turns taps into steps.',
+      c1: 'screen read in ~20 ms', c2: 'H.264 mirror ~50 fps', c3: 'flow recorder', c4: 'many devices in parallel', c5: 'CLI for CI',
+      file: 'settings.yaml', run: '▶ run',
+      l3: '  <span class="k">SEARCH</span><span class="p">:</span> Battery',
+      l8: '    <span class="k">element</span><span class="p">:</span> <span class="s">"<span class="v">${SEARCH}</span>"</span>',
+      l9: '<span class="p">-</span> <span class="c">tapOn</span><span class="p">:</span> <span class="s">"<span class="v">${SEARCH}</span>"</span>',
+      l10: '<span class="p">-</span> <span class="c">assertVisible</span><span class="p">:</span> <span class="s">".*(%|Battery).*"</span>',
+      l11: '<span class="p">-</span> <span class="c">takeScreenshot</span><span class="p">:</span> battery',
+      live: 'live log', log2: 'scrollUntilVisible "Battery"', log3: 'tapOn "Battery"', t1: '0.9s', t2: '1.2s',
+      settings: 'Settings', search: 'Search settings',
+      i1: '<b>Network &amp; internet</b><small>Wi‑Fi, mobile data</small>',
+      i2: '<b>Connected devices</b><small>Bluetooth, pairing</small>',
+      i3: '<b>Apps</b><small>Recent apps, default apps</small>',
+      i4: '<b>Notifications</b><small>History, conversations</small>',
+      i5: '<b>Battery</b><small>87% · about 1 day left</small>',
+      i6: '<b>Storage</b><small>64% used</small>',
+      i7: '<b>Display</b><small>Dark theme, font size</small>',
+    }
+    if (new URLSearchParams(location.search).get('lang') === 'en') {
+      document.documentElement.lang = 'en'
+      for (const el of document.querySelectorAll('[data-i18n]')) el.innerHTML = EN[el.dataset.i18n]
+    }
+  </script>
 </body>
 </html>

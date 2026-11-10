@@ -6,150 +6,154 @@
 </p>
 
 <p align="center">
-  Testes e2e no app nativo Android <strong>via adb</strong>, com fluxos YAML no formato do Maestro.<br>
-  Painel local em Next.js com espelho do celular, log ao vivo, fila de passos e gravador de fluxos.
+  End-to-end testing for native Android apps <strong>over adb</strong>, with Maestro-style YAML flows.<br>
+  A local Next.js dashboard with live device mirroring, a live log, a step queue and a flow recorder.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Android-adb-4ade80?style=flat-square" alt="Android via adb">
-  <img src="https://img.shields.io/badge/fluxos-YAML%20(Maestro)-a78bfa?style=flat-square" alt="Fluxos YAML no formato do Maestro">
+  <img src="https://img.shields.io/badge/Android-adb-4ade80?style=flat-square" alt="Android over adb">
+  <img src="https://img.shields.io/badge/flows-YAML%20(Maestro)-a78bfa?style=flat-square" alt="Maestro-style YAML flows">
   <img src="https://img.shields.io/badge/Next.js-15-1b1631?style=flat-square" alt="Next.js 15">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-facc15?style=flat-square" alt="Licença MIT"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-facc15?style=flat-square" alt="MIT license"></a>
 </p>
 
 <p align="center">
-  <img src="assets/banner.png" alt="e2e-box: painel com espelho do celular, editor YAML e passos ao vivo" width="820">
+  <img src="assets/banner.png" alt="e2e-box: dashboard with device mirror, YAML editor and live steps" width="820">
 </p>
 
-## Rodar
+## Getting started
 
 ```bash
 pnpm install
 pnpm dev            # http://127.0.0.1:3334
 ```
 
-Pré-requisitos: `adb` (Android SDK platform-tools) e um Android com **depuração USB** ligada (ou um emulador).
-O adb é procurado em `ADB_PATH`, `ANDROID_HOME`, `%LOCALAPPDATA%\Android\Sdk` e por fim no `PATH`.
+Requirements: `adb` (Android SDK platform-tools) and an Android device with **USB debugging** turned on (or an emulator).
+adb is looked up in `ADB_PATH`, `ANDROID_HOME`, `%LOCALAPPDATA%\Android\Sdk` and finally on the `PATH`.
 
-## Agente no celular
+The dashboard is available in **English** and **Brazilian Portuguese**: the EN/PT switch at the top changes it and remembers
+your choice; without one, it follows the browser language. The engine log and the CLI output are in Portuguese for now.
 
-Para ler a tela rápido, o e2e-box envia um agente pequeno (`agent/dist/e2e-box-agent.jar`, ~5KB) para
-`/data/local/tmp` e o roda com `app_process` (sem instalar APK). Ele mantém a conexão de acessibilidade
-aberta e responde em ~20ms, contra 1–3s do `uiautomator dump`; também digita texto **com acento** direto
-no campo focado (sem ADBKeyboard). Sobe sozinho na primeira leitura de tela e é reenviado quando o jar muda.
+## On-device agent
 
-- Com o agente, o motor espera a **tela estabilizar** (duas leituras iguais) depois de cada ação, em vez de
-  pausas fixas. Sem ele (`E2E_BOX_NO_AGENT=1` ou se não subir), volta ao `uiautomator dump` e às pausas.
-- Enquanto o agente está conectado, o `uiautomator dump` de fora não funciona (só um cliente por vez).
-- Segurança: cada sessão sobe o seu agente (encerra os anteriores), com nome de socket e segredo
-  aleatórios; o agente só aceita conexões de `shell`/root e os dois lados provam o segredo por
-  HMAC antes de qualquer comando. Outro app do aparelho não lê a tela nem recebe o que é digitado.
-- Só um processo roda fluxo por celular: painel e CLI derrubariam o agente um do outro. Quem chega depois recebe
-  um aviso de quem está rodando, e o inspetor e o gravador ficam bloqueados nesse celular até acabar.
-- Recompilar depois de mexer em `agent/src`: `node agent/build.mjs` (JDK 17+ e Android SDK com build-tools).
+To read the screen quickly, e2e-box pushes a small agent (`agent/dist/e2e-box-agent.jar`, ~5KB) to
+`/data/local/tmp` and runs it with `app_process` (no APK install). It keeps the accessibility connection
+open and answers in ~20ms, versus 1–3s for `uiautomator dump`; it also types **accented** text straight into
+the focused field (no ADBKeyboard needed). It starts on the first screen read and is pushed again when the jar changes.
+
+- With the agent, the engine waits for the **screen to settle** (two identical reads) after each action instead of
+  fixed pauses. Without it (`E2E_BOX_NO_AGENT=1`, or if it fails to start), it falls back to `uiautomator dump` and pauses.
+- While the agent is connected, an external `uiautomator dump` does not work (only one client at a time).
+- Security: each session starts its own agent (stopping previous ones) with a random socket name and secret;
+  the agent only accepts connections from `shell`/root, and both sides prove the secret via HMAC before any
+  command. Other apps on the device cannot read the screen or receive what is typed.
+- Only one process runs flows per device: the dashboard and the CLI would kill each other's agent. Whoever comes second
+  gets a notice saying who is running, and the inspector and recorder stay locked on that device until it finishes.
+- Rebuild after changing `agent/src`: `node agent/build.mjs` (JDK 17+ and Android SDK with build-tools).
 
 ## Workspaces
 
-`e2e-box.config.json` lista as pastas de fluxos. Vem com **Exemplos** (`./flows`), que abre as Configurações e roda
-em qualquer Android.
+`e2e-box.config.json` lists the flow folders. It ships with **Exemplos** (`./flows`), which opens Settings and runs
+on any Android device.
 
-Para o seu app, o ideal é versionar os fluxos no repo dele, em **`.e2e-box/`** ou **`.maestro/`**, e clonar o e2e-box ao lado.
-O `+` da barra lateral sugere as pastas vizinhas (aponta para a `.e2e-box/` ou a `.maestro/` que já existir) e detecta o
-`appId` de apps Expo/React Native, ou edite o arquivo:
+For your app, the best setup is to keep the flows in the app's repo, in **`.e2e-box/`** or **`.maestro/`**, and clone
+e2e-box next to it. The `+` in the sidebar suggests sibling folders (pointing to whichever of `.e2e-box/` or `.maestro/`
+already exists) and detects the `appId` of Expo/React Native apps; or edit the file:
 
 ```json
-{ "id": "meu-app", "name": "Meu app", "dir": "../meu-app/.maestro", "appId": "com.empresa.meuapp" }
+{ "id": "my-app", "name": "My app", "dir": "../my-app/.maestro", "appId": "com.company.myapp" }
 ```
 
-Sem `workspaces` no `e2e-box.config.json` (ou sem o arquivo), o e2e-box procura `.e2e-box/` e `.maestro/` na pasta em que
-roda e usa cada uma como workspace, com o `appId` do `app.json`. O `config.yaml` na raiz da pasta (configuração do Maestro)
-não aparece como fluxo.
+With no `workspaces` in `e2e-box.config.json` (or no file at all), e2e-box looks for `.e2e-box/` and `.maestro/` in the
+folder it runs from and uses each one as a workspace, with the `appId` from `app.json`. A `config.yaml` at the root of the
+folder (Maestro's workspace config) is not listed as a flow.
 
-Usuário e senha de teste ficam em `e2e-box.local.json` (fora do git), por workspace; veja `e2e-box.local.example.json`.
+Test usernames and passwords go in `e2e-box.local.json` (kept out of git), per workspace; see `e2e-box.local.example.json`.
 
-Arquivos em subpastas aparecem como subfluxos (chamados por `runFlow`).
+Files in subfolders show up as subflows (called with `runFlow`).
 
-## Criando fluxos pela interface
+## Creating flows from the dashboard
 
-1. `+` no workspace cria o arquivo.
-2. No espelho, escolha o modo:
-   - **inspecionar**: clicar mostra o elemento (texto, desc, id) e sugere passos (`tapOn`, `assertVisible`, `point`).
-   - **● gravar**: cada toque/arraste vai para o device **e** vira um passo no YAML, na linha do cursor.
-     - Rolagem vertical vira `scrollUntilVisible` até o elemento do próximo toque (ou `scroll` se não houver).
-     - Texto que muda vira regex: saudação com nome (`"Olá .*"`) já entra assim; números (`"Agendas \(\d+\)"`) ficam como opção.
-     - Tocar num campo de texto foca a caixa "digitar no device", e o que for digitado vira `inputText`.
-     - Parar: botão **■ parar e salvar**, **■ REC** em cima da tela ou **Esc** (salva o YAML).
-   - **controlar**: só controla o device.
-3. Campo "digitar no device" gera `inputText`; botões voltar/fechar teclado/↵ geram `back`/`hideKeyboard`/`pressKey`.
-4. `Ctrl+S` salva, `Ctrl+Enter` roda. Se faltar o `---` entre o cabeçalho e os passos, o e2e-box acrescenta.
+1. `+` on a workspace creates the file.
+2. On the mirror, pick a mode:
+   - **Inspect**: clicking shows the element (text, desc, id) and suggests steps (`tapOn`, `assertVisible`, `point`).
+   - **● Record**: every tap/swipe goes to the device **and** becomes a YAML step at the cursor line.
+     - Vertical scrolling becomes `scrollUntilVisible` up to the element of the next tap (or `scroll` if there is none).
+     - Text that changes becomes a regex: a greeting with a name (`"Hello .*"`) goes in that way; numbers (`"Orders \(\d+\)"`) are offered as an option.
+     - Tapping a text field focuses the "type on the device" box, and whatever you type becomes `inputText`.
+     - Stop with **■ Stop and save**, the **■ REC** badge on the screen, or **Esc** (saves the YAML).
+   - **Control**: just controls the device.
+3. The "type on the device" field generates `inputText`; the back/hide keyboard/↵ buttons generate `back`/`hideKeyboard`/`pressKey`.
+4. `Ctrl+S` saves, `Ctrl+Enter` runs. If the `---` between the header and the steps is missing, e2e-box adds it.
 
-O espelho usa **vídeo** (`screenrecord` em H.264, decodificado no navegador com WebCodecs, ~20–50 fps) e cai
-para **print** (`screencap`, ~1 fps) se o navegador não suportar ou o vídeo falhar; o botão no rodapé do celular
-alterna os dois. Só um vídeo por vez: a aba que abre o vídeo fica com ele, a outra passa para o print e retoma ao voltar a ela.
+The mirror uses **video** (`screenrecord` in H.264, decoded in the browser with WebCodecs, ~20–50 fps) and falls back
+to **screenshots** (`screencap`, ~1 fps) if the browser does not support it or the video fails; the button under the device
+switches between them. Only one video at a time: the tab that opens the video keeps it, the other switches to screenshots and
+takes the video back when you return to it.
 
-Cada execução fica em `runs/<data>/` com `report.json`; quando falha, também `falha.png` e `falha-hierarquia.xml`.
+Each run is stored in `runs/<date>/` with a `report.json`; on failure, also `falha.png` and `falha-hierarquia.xml`.
 
-## Confiança nos testes
+## Trusting your tests
 
-- **Passou sem checks**: se nenhum passo conferiu o resultado, o painel mostra "passou sem checks", em vez do verde, e a
-  CLI avisa. Contam `assertVisible`, `assertNotVisible`, `assertTrue` e `extendedWaitUntil`; o que a pré-condição confere não conta.
-- **Passos frágeis**: o editor aponta `tapOn: ""`, a raiz da tela (`id: action_bar_root`) e toques por `point`. Ao rodar, o
-  motor lê o elemento sob o toque e o editor oferece trocar o passo por um seletor pelo texto.
-- **Pré-condição**: `onFlowStart` no cabeçalho roda antes dos passos. Se falhar, o erro diz "Pré-condição não atendida" em vez de
-  o fluxo sair tocando na tela errada. Exemplo: `onFlowStart: [{ runFlow: subflows/ir-para-home.yaml }]`.
-- **Rodar um trecho**: com o cursor num passo, **▶ passo N** roda só ele e **▶ daqui** roda até o fim, na tela em que o
-  celular está (sem `onFlowStart`). Trecho não muda o ponto do fluxo na lista.
-- **Tela de execução**: clicar numa execução abre a linha do tempo, com um print por passo, o log de cada um e, na falha, o
-  erro e o que estava na tela. Os prints ficam nas 30 execuções mais recentes; a CLI não os tira.
-- **Instabilidade**: o botão **5x** roda o fluxo cinco vezes seguidas e mostra quantas passaram e em qual passo falhou.
+- **Passed without checks**: if no step verified the result, the dashboard shows "Passed without checks" instead of green, and
+  the CLI warns. `assertVisible`, `assertNotVisible`, `assertTrue` and `extendedWaitUntil` count; checks done by the precondition do not.
+- **Fragile steps**: the editor flags `tapOn: ""`, the screen root (`id: action_bar_root`) and taps by `point`. When the flow runs,
+  the engine reads the element under the tap and the editor offers to replace the step with a text selector.
+- **Precondition**: `onFlowStart` in the header runs before the steps. If it fails, the error says the precondition was not met
+  instead of the flow tapping around on the wrong screen. Example: `onFlowStart: [{ runFlow: subflows/go-home.yaml }]`.
+- **Run part of a flow**: with the cursor on a step, **▶ Step N** runs only that step and **▶ From here** runs to the end, on
+  whatever screen the device is on (without `onFlowStart`). Partial runs do not change the flow's status dot in the list.
+- **Run details**: clicking a run opens its timeline, with a screenshot per step, each step's log and, on failure, the error and
+  what was on screen. Screenshots are kept for the 30 most recent runs; the CLI does not take them.
+- **Flakiness**: the **5x** button runs the flow five times in a row and shows how many passed and which step failed.
 
-## Vários celulares, cabo e rotação
+## Multiple devices, cables and rotation
 
-- **Vários celulares**: cada um tem a sua execução. Escolha o aparelho no topo e rode; ao trocar, o painel mostra o
-  log e os passos do outro, e a lista marca quem está `rodando`. O espelho mostra um celular por vez.
-- **Celular desconectado**: o fluxo para na hora com "Celular desconectado" (sem esperar timeouts, sem `retry` e sem
-  evidências). O painel espera o mesmo aparelho voltar, e o espelho e o agente religam sozinhos.
-- **Tela girada**: o motor acompanha a rotação a cada passo (pontos em `%` e "dentro da tela") e o espelho reabre em
-  paisagem, com os toques no lugar certo.
+- **Multiple devices**: each one has its own run. Pick the device at the top and run; when you switch, the dashboard shows the
+  other device's log and steps, and the list marks which ones are `running`. The mirror shows one device at a time.
+- **Device disconnected**: the flow stops immediately with a disconnected-device error (no waiting for timeouts, no `retry`,
+  no evidence). The dashboard waits for the same device to come back, and the mirror and agent reconnect on their own.
+- **Rotated screen**: the engine tracks rotation on every step (`%` points and "on screen" checks) and the mirror reopens in
+  landscape, with taps landing in the right place.
 
 ## CLI (CI / terminal)
 
 ```bash
-pnpm e2e                     # sem alvo: as pastas .e2e-box/ e .maestro/ da pasta atual
+pnpm e2e                       # no target: the .e2e-box/ and .maestro/ folders in the current directory
 pnpm e2e flows/configuracoes.yaml
-pnpm e2e meu-app:login.yaml -e USUARIO=teste -v   # <workspace>:<arquivo>
-pnpm e2e flows/              # todos os .yaml da raiz da pasta
-pnpm e2e flows/ --all-devices  # em todos os celulares conectados, ao mesmo tempo
+pnpm e2e my-app:login.yaml -e USER=test -v   # <workspace>:<file>
+pnpm e2e flows/                # every .yaml at the root of the folder
+pnpm e2e flows/ --all-devices  # on every connected device, at the same time
 ```
 
-Sai com código 1 se algum fluxo falhar e 2 se não der para começar (sem device ou celular em uso).
-`-d <serial>` escolhe o device; repita para vários, ou use `--all-devices`. Cada celular roda os fluxos em sequência,
-e os celulares rodam em paralelo, com o serial no início de cada linha.
+Exits with code 1 if any flow fails and 2 if it cannot start (no device, or the device is busy).
+`-d <serial>` picks the device; repeat it for several, or use `--all-devices`. Each device runs the flows in sequence,
+devices run in parallel, and each output line starts with the serial.
 
-## Comandos suportados
+## Supported commands
 
-| Comando | Observação |
+| Command | Notes |
 |---|---|
-| `launchApp` | `appId`, `clearState`, `stopApp`, `permissions` (concede as negadas) |
+| `launchApp` | `appId`, `clearState`, `stopApp`, `permissions` (grants the denied ones) |
 | `stopApp`, `killApp`, `clearState` | |
-| `tapOn`, `doubleTapOn`, `longPressOn` | texto, `id`, `index`, `point: "50%,89%"`, `repeat`, `optional`, relativos (`below`, `above`, `leftOf`, `rightOf`, `childOf`, `containsChild`) |
-| `inputText`, `inputRandom*`, `eraseText`, `copyTextFrom`, `pasteText` | acentos pelo agente; sem ele, pelo [ADBKeyboard](https://github.com/senzhk/ADBKeyBoard) se for o teclado ativo, ou sem acento (com aviso). Texto vindo de `${VAR}` aparece como `•••` no log |
+| `tapOn`, `doubleTapOn`, `longPressOn` | text, `id`, `index`, `point: "50%,89%"`, `repeat`, `optional`, relative (`below`, `above`, `leftOf`, `rightOf`, `childOf`, `containsChild`) |
+| `inputText`, `inputRandom*`, `eraseText`, `copyTextFrom`, `pasteText` | accents through the agent; without it, through [ADBKeyboard](https://github.com/senzhk/ADBKeyBoard) if it is the active keyboard, or without accents (with a warning). Text from `${VAR}` shows as `•••` in the log |
 | `pressKey`, `back`, `hideKeyboard` | Enter, Back, Home, Backspace, Tab, Escape, Volume… |
 | `scroll`, `swipe`, `scrollUntilVisible` | `direction`, `start`/`end`, `from`, `timeout`, `visibilityPercentage` |
-| `assertVisible`, `assertNotVisible`, `assertTrue`, `extendedWaitUntil` | espera até `lookupTimeoutMs` (7s) |
+| `assertVisible`, `assertNotVisible`, `assertTrue`, `extendedWaitUntil` | waits up to `lookupTimeoutMs` (7s) |
 | `runFlow` | `file`, `commands`, `when: visible/notVisible/platform`, `env` |
 | `repeat`, `retry` | `times`, `while`, `maxRetries` |
 | `waitForAnimationToEnd`, `takeScreenshot`, `openLink` | |
-| `wait: 1000` | extensão do e2e-box (pausa em ms) |
+| `wait: 1000` | e2e-box extension (pause in ms) |
 
-Variáveis: `${NOME}` vem do `env:` do cabeçalho, do `env` do workspace, do `runFlow` ou do campo env da interface / `-e` da CLI.
-Os textos casam como no Maestro: regex que precisa casar o texto inteiro (sem diferenciar maiúsculas), contra `text`, `content-desc` e `hint`.
+Variables: `${NAME}` comes from the header's `env:`, the workspace `env`, `runFlow`, or the env field in the dashboard / `-e` in the CLI.
+Text matching works like Maestro: a case-insensitive regex that must match the whole text, against `text`, `content-desc` and `hint`.
 
-Ainda não suportados (são pulados com aviso): `evalScript`, `runScript`, `setLocation`, `travel`, `addMedia`, gravação de vídeo e comandos de IA.
+Not supported yet (skipped with a warning): `evalScript`, `runScript`, `setLocation`, `travel`, `addMedia`, video recording and AI commands.
 
-Segurança: a API só aceita chamadas da própria página (Host local, Origin do app e JSON); workspaces ficam
-na pasta que contém o e2e-box e subfluxos dentro do workspace.
+Security: the API only accepts calls from its own page (local Host, the app's Origin and JSON); workspaces must live inside
+the folder that contains e2e-box, and subflows inside their workspace.
 
-## Licença
+## License
 
 [MIT](LICENSE)

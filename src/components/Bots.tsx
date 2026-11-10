@@ -1,10 +1,15 @@
+'use client'
+
+import { useI18n } from '@/lib/i18n'
+
 export type BotId = 'reader' | 'tapper' | 'typer' | 'checker'
 
-export const BOTS: { id: BotId; name: string; role: string; color: string; doing: string }[] = [
-  { id: 'reader', name: 'Reader', role: 'lê a tela', color: 'var(--teal)', doing: 'lendo' },
-  { id: 'tapper', name: 'Tapper', role: 'toques e arrastes', color: 'var(--purple)', doing: 'tocando' },
-  { id: 'typer', name: 'Typer', role: 'teclado', color: 'var(--pink)', doing: 'digitando' },
-  { id: 'checker', name: 'Checker', role: 'asserts', color: 'var(--red)', doing: 'conferindo' },
+/** Papel e o que cada um está fazendo vêm do idioma (i18n.tsx → bots). */
+export const BOTS: { id: BotId; name: string; color: string }[] = [
+  { id: 'reader', name: 'Reader', color: 'var(--teal)' },
+  { id: 'tapper', name: 'Tapper', color: 'var(--purple)' },
+  { id: 'typer', name: 'Typer', color: 'var(--pink)' },
+  { id: 'checker', name: 'Checker', color: 'var(--red)' },
 ]
 
 /** Descobre qual "bot" fez uma linha do log. */
@@ -69,18 +74,19 @@ function Face({ id, color }: { id: BotId; color: string }) {
  * Cada bot tem a própria animação enquanto trabalha (ver .bot.busy.<id> no CSS).
  */
 export function Bots({ active, failAt, now }: { active: Record<BotId, number>; failAt: number; now: number }) {
+  const { t } = useI18n()
   return (
-    <div className="bots" aria-label="Mascotes da execução">
+    <div className="bots" aria-label={t.botsLabel}>
       {BOTS.map((b, i) => {
         const busy = now - (active[b.id] ?? 0) < 900
         const caught = b.id === 'checker' && now - failAt < 2500
-        const label = caught ? 'pegou!' : busy ? b.doing : b.name
+        const label = caught ? t.caught : busy ? t.bots[b.id].doing : b.name
         return (
           <div
             key={b.id}
             className={`bot ${b.id} ${busy ? 'busy' : ''} ${caught ? 'caught' : ''}`}
             style={{ ['--bot' as string]: b.color, ['--blink-delay' as string]: `${i * 1.3}s` }}
-            title={`${b.name}: ${b.role}`}
+            title={`${b.name}: ${t.bots[b.id].role}`}
           >
             <div className="face" aria-hidden="true">
               <Face id={b.id} color={b.color} />

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RunEvent } from '@/lib/engine'
+import { useI18n, type Messages } from '@/lib/i18n'
 
 interface Report {
   runId: string
@@ -33,7 +34,7 @@ interface HierarchyLine {
 const secs = (ms?: number) => (ms == null ? '' : ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`)
 
 /** Monta a linha do tempo dos passos de primeiro nível a partir dos eventos do relatório. */
-function toRows(report: Report): StepRow[] {
+function toRows(report: Report, t: Messages): StepRow[] {
   const start = report.events.find((e) => e.type === 'run-start')
   const labels = start?.type === 'run-start' ? start.steps : []
   const rows: StepRow[] = labels.map((label, i) => ({ id: String(i), label, status: 'pending', logs: [] }))
@@ -49,7 +50,7 @@ function toRows(report: Report): StepRow[] {
   }
   // Falhou antes do primeiro passo (pré-condição, por exemplo).
   if (report.status === 'failed' && !rows.some((r) => r.status === 'failed')) {
-    rows.unshift({ id: 'falha', label: 'antes dos passos', status: 'failed', error: report.error, shot: 'falha.png', logs: [] })
+    rows.unshift({ id: 'falha', label: t.beforeSteps, status: 'failed', error: report.error, shot: 'falha.png', logs: [] })
   }
   return rows
 }
@@ -68,6 +69,7 @@ function parseHierarchyLines(xml: string): HierarchyLine[] {
 }
 
 export function RunDetail({ runId, onClose }: { runId: string; onClose: () => void }) {
+  const { t } = useI18n()
   const [report, setReport] = useState<Report | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
@@ -88,7 +90,7 @@ export function RunDetail({ runId, onClose }: { runId: string; onClose: () => vo
     let alive = true
     fetch(artifact('report.json'), { cache: 'no-store' })
       .then((r) => {
-        if (!r.ok) throw new Error('Relatório não encontrado')
+        if (!r.ok) throw new Error(t.reportNotFound)
         return r.json()
       })
       .then((data) => alive && setReport(data))
@@ -99,7 +101,7 @@ export function RunDetail({ runId, onClose }: { runId: string; onClose: () => vo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runId])
 
-  const rows = useMemo(() => (report ? toRows(report) : []), [report])
+  const rows = useMemo(() => (report ? toRows(report, t) : []), [report, t])
   const failedIndex = rows.findIndex((r) => r.status === 'failed')
   const lastShot = rows.reduce((last, r, i) => (r.shot ? i : last), -1)
   const index = selected ?? (failedIndex >= 0 ? failedIndex : Math.max(lastShot, 0))
@@ -126,15 +128,15 @@ export function RunDetail({ runId, onClose }: { runId: string; onClose: () => vo
       <div className="modal card detail" role="dialog" aria-modal="true" aria-labelledby="run-detail-title">
         <div className="modal-head">
           <h2 id="run-detail-title">
-            {report?.ref.split(':').pop() ?? 'Execução'}
+            {report?.ref.split(':').pop() ?? t.runTitle}
             {report && (
               <small>
-                {' '}{report.status === 'passed' ? 'passou' : report.status === 'stopped' ? 'parado' : 'falhou'} em {secs(report.ms)}
+                {' '}{t.statusIn(report.status, secs(report.ms))}
                 {report.partial ? `, ${report.partial}` : ''}
               </small>
             )}
           </h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar">×</button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t.close}>×</button>
         </div>
         {error && <div className="modal-error">{error}</div>}
         {report && (
@@ -153,29 +155,29 @@ export function RunDetail({ runId, onClose }: { runId: string; onClose: () => vo
             <div className="detail-shot">
               {row?.shot && !noImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={artifact(row.shot)} alt={`Tela depois de ${row.label}`} onError={() => setNoImage(true)} />
+                <img src={artifact(row.shot)} alt={t.screenAfter(row.label)} onError={() => setNoImage(true)} />
               ) : (
-                <div className="detail-empty">{row?.status === 'skipped' || row?.status === 'pending' ? 'Passo não executado' : 'Sem print deste passo'}</div>
+                <div className="detail-empty">{row?.status === 'skipped' || row?.status === 'pending' ? t.notExecuted : t.noShot}</div>
               )}
             </div>
             <div className="detail-info">
               {row?.error && <div className="modal-error">{row.error}</div>}
-              <div className="detail-title">Log do passo</div>
+              <div className="detail-title">{t.stepLog}</div>
               <div className="detail-log">
                 {row?.logs.length ? (
                   row.logs.map((l, i) => (
                     <div key={i} className={`ln ${l.level}`} style={{ paddingLeft: l.depth * 12 }}>{l.msg}</div>
                   ))
                 ) : (
-                  <span className="detail-muted">Nada registrado</span>
+                  <span className="detail-muted">{t.nothingLogged}</span>
                 )}
               </div>
               {row?.status === 'failed' && (
                 <>
-                  <div className="detail-title">Na tela quando falhou</div>
+                  <div className="detail-title">{t.onScreenWhenFailed}</div>
                   <div className="detail-log">
-                    {hierarchy === null && <span className="detail-muted">Carregando…</span>}
-                    {hierarchy?.length === 0 && <span className="detail-muted">Hierarquia indisponível</span>}
+                    {hierarchy === null && <span className="detail-muted">{t.loading}</span>}
+                    {hierarchy?.length === 0 && <span className="detail-muted">{t.noHierarchy}</span>}
                     {hierarchy?.map((n, i) => (
                       <div key={i} className="detail-node">
                         <span>{n.cls}</span> {n.text && <b>{n.text}</b>} {n.desc && <i>{n.desc}</i>} {n.id && <code>#{n.id}</code>}

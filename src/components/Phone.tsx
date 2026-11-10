@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GestureKind } from '@/lib/engine'
+import { useI18n } from '@/lib/i18n'
 import { H264Player, videoSupported } from './h264'
 
 export type Mode = 'inspect' | 'record' | 'control'
@@ -51,7 +52,7 @@ interface Props {
 async function act(body: object): Promise<InspectResult> {
   const res = await fetch('/api/action', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
   const json = await res.json()
-  if (!res.ok) throw new Error(json.error ?? 'falhou')
+  if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`)
   return json
 }
 
@@ -67,6 +68,9 @@ function loadView(): View {
 }
 
 export function Phone({ serial, running, flowRef, gesture, onStopRecording, onInsert, onError }: Props) {
+  const { t } = useI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const [view, setView] = useState<View>('print')
   const [src, setSrc] = useState<string | null>(null)
   /** Tamanho real da tela do device (os toques e overlays usam esse sistema de coordenadas). */
@@ -238,7 +242,7 @@ export function Phone({ serial, running, flowRef, gesture, onStopRecording, onIn
         if (!alive) return
         if (++failures >= 3) {
           setOffline(true)
-          onError('Vídeo do espelho indisponível; voltando para o modo print')
+          onError(tRef.current.videoUnavailable)
           setView('print') // só nesta sessão: a preferência salva continua sendo a do usuário
           return
         }
@@ -396,7 +400,7 @@ export function Phone({ serial, running, flowRef, gesture, onStopRecording, onIn
     setInspect(res)
     if (res.field) {
       // Campo de texto: o próximo passo natural é digitar.
-      setTextHint(res.fieldLabel ? `texto para "${res.fieldLabel}"…` : 'texto para o campo…')
+      setTextHint(res.fieldLabel ? t.textFor(res.fieldLabel) : t.textForField)
       requestAnimationFrame(() => textRef.current?.focus())
     } else {
       setTextHint(null)
@@ -431,18 +435,18 @@ export function Phone({ serial, running, flowRef, gesture, onStopRecording, onIn
   return (
     <div className="card phone-card">
       <div className="phone-head">
-        <div className="modes" role="group" aria-label="O que o clique no espelho faz">
-          <button className={mode === 'inspect' ? 'on' : ''} aria-pressed={mode === 'inspect'} onClick={() => changeMode('inspect')} title="Clique mostra o elemento e sugere o passo">Inspecionar</button>
-          <button className={mode === 'record' ? 'on rec' : ''} aria-pressed={mode === 'record'} onClick={() => changeMode('record')} title="Clique toca no celular e adiciona o passo no YAML" disabled={running || !flowRef}>● Gravar</button>
-          <button className={mode === 'control' ? 'on' : ''} aria-pressed={mode === 'control'} onClick={() => changeMode('control')} title="Clique só toca no celular">Controlar</button>
+        <div className="modes" role="group" aria-label={t.modesLabel}>
+          <button className={mode === 'inspect' ? 'on' : ''} aria-pressed={mode === 'inspect'} onClick={() => changeMode('inspect')} title={t.inspectTitle}>{t.inspect}</button>
+          <button className={mode === 'record' ? 'on rec' : ''} aria-pressed={mode === 'record'} onClick={() => changeMode('record')} title={t.recordTitle} disabled={running || !flowRef}>{t.record}</button>
+          <button className={mode === 'control' ? 'on' : ''} aria-pressed={mode === 'control'} onClick={() => changeMode('control')} title={t.controlTitle}>{t.control}</button>
         </div>
       </div>
       <div className="phone-wrap">
         <div className={`phone ${devSize && devSize.w > devSize.h ? 'landscape' : ''}`}>
           <div className="screen" ref={screenRef}>
             {mode === 'record' && !running && (
-              <button className="rec-badge" onClick={stopRecording} title="Parar gravação e salvar (Esc)">
-                ■ REC · parar
+              <button className="rec-badge" onClick={stopRecording} title={t.recBadgeTitle}>
+                {t.recBadge}
               </button>
             )}
             {view === 'video' ? (
@@ -462,7 +466,7 @@ export function Phone({ serial, running, flowRef, gesture, onStopRecording, onIn
                 }}
                 className="surface"
                 src={src}
-                alt="tela do device"
+                alt={t.screenAlt}
                 draggable={false}
                 onLoad={(e) => {
                   const i = e.currentTarget
@@ -473,10 +477,10 @@ export function Phone({ serial, running, flowRef, gesture, onStopRecording, onIn
             ) : null}
             {(offline || !serial) && (
               <div className="no-device">
-                Celular não disponível.
+                {t.noDevice}
                 <br />
                 <br />
-                Ligue a <b>depuração USB</b> e confira com <code>adb devices</code>.
+                {t.turnOn} <b>{t.usbDebugging}</b> {t.andCheck} <code>adb devices</code>.
               </div>
             )}
             {hl && <div className="hl" style={hl} />}
@@ -522,12 +526,12 @@ export function Phone({ serial, running, flowRef, gesture, onStopRecording, onIn
                 {inspect.node.desc && <>desc <b>&quot;{inspect.node.desc}&quot;</b> · </>}
                 {inspect.node.id && <>id <b>{inspect.node.id}</b> · </>}
                 <b>{inspect.node.cls}</b>
-                {inspect.field ? ' · campo de texto' : inspect.node.clickable ? ' · clicável' : ''}
+                {inspect.field ? t.textField : inspect.node.clickable ? t.clickable : ''}
               </>
             ) : (
-              'nenhum elemento com texto aqui; use o ponto'
+              t.noElement
             )}
-            <button className="icon-btn" style={{ float: 'right' }} onClick={() => setInspect(null)} aria-label="Fechar inspetor">×</button>
+            <button className="icon-btn" style={{ float: 'right' }} onClick={() => setInspect(null)} aria-label={t.closeInspector}>×</button>
           </div>
           <div className="chips">
             {inspect.suggestions.map((s) => (
@@ -540,16 +544,16 @@ export function Phone({ serial, running, flowRef, gesture, onStopRecording, onIn
       )}
       <div className="phone-tools">
         <div className="phone-keys">
-          <button className="btn" disabled={running || busy} onClick={() => key('back')}>◀ Voltar</button>
-          <button className="btn" disabled={running || busy} onClick={() => key('home')}>● Home</button>
-          <button className="btn" disabled={running || busy} onClick={() => key('hideKeyboard')}>⌨ Fechar</button>
+          <button className="btn" disabled={running || busy} onClick={() => key('back')}>{t.back}</button>
+          <button className="btn" disabled={running || busy} onClick={() => key('home')}>{t.home}</button>
+          <button className="btn" disabled={running || busy} onClick={() => key('hideKeyboard')}>{t.hideKeyboard}</button>
           <button className="btn" disabled={running || busy} onClick={() => key('enter')} aria-label="Enter" title="Enter">↵</button>
         </div>
         <input
           ref={textRef}
           className={textHint ? 'want' : ''}
-          aria-label="Digitar no celular"
-          placeholder={textHint ?? 'Digitar no celular…'}
+          aria-label={t.typeLabel}
+          placeholder={textHint ?? t.typePlaceholder}
           value={text}
           disabled={running}
           onChange={(e) => setText(e.target.value)}
@@ -558,8 +562,8 @@ export function Phone({ serial, running, flowRef, gesture, onStopRecording, onIn
       </div>
       {mode === 'record' && (
         <div className="rec-bar">
-          <span>● gravando em {flowRef?.split(':')[1]}</span>
-          <button className="btn stop" onClick={stopRecording}>■ Parar e salvar</button>
+          <span>{t.recordingIn(flowRef?.split(':')[1] ?? '')}</span>
+          <button className="btn stop" onClick={stopRecording}>{t.stopAndSave}</button>
         </div>
       )}
       <div className="phone-foot">
@@ -568,16 +572,16 @@ export function Phone({ serial, running, flowRef, gesture, onStopRecording, onIn
             className="view-toggle"
             onClick={() => switchView(view === 'video' ? 'print' : 'video')}
             disabled={view === 'print' && !canVideo}
-            title="Alternar entre vídeo (screenrecord) e print (screencap)"
+            title={t.viewToggleTitle}
           >
-            {view === 'video' ? 'Vídeo' : 'Print'}
+            {view === 'video' ? t.video : t.print}
           </button>
           {' '}
-          {[devSize && `${devSize.w}×${devSize.h}`, view === 'video' ? (fps ? `${fps} fps` : 'parado') : fps ? `${fps} fps` : null, view === 'print' && elsewhere ? 'vídeo em outra aba' : null]
+          {[devSize && `${devSize.w}×${devSize.h}`, view === 'video' ? (fps ? `${fps} fps` : t.idle) : fps ? `${fps} fps` : null, view === 'print' && elsewhere ? t.videoElsewhere : null]
             .filter(Boolean)
             .join(', ')}
         </span>
-        <span>{mode === 'record' ? 'Esc para parar' : mode === 'inspect' ? 'Clique para ver o elemento' : 'Clique e arraste no celular'}</span>
+        <span>{mode === 'record' ? t.escToStop : mode === 'inspect' ? t.clickToInspect : t.clickAndDrag}</span>
       </div>
     </div>
   )

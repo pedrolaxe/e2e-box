@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useI18n } from '@/lib/i18n'
 
 interface WorkspaceOption {
   id: string
@@ -32,6 +33,7 @@ function slug(name: string) {
 }
 
 export function NewFlowModal({ workspaces, initialWorkspace, unsavedFlow, onClose, onCreate }: Props) {
+  const { t } = useI18n()
   const [workspace, setWorkspace] = useState(initialWorkspace)
   const [name, setName] = useState('')
   const [subflow, setSubflow] = useState(false)
@@ -79,7 +81,7 @@ export function NewFlowModal({ workspaces, initialWorkspace, unsavedFlow, onClos
   const base = slug(name)
   const rel = base ? `${subflow && !base.startsWith('subflows/') ? 'subflows/' : ''}${base}.yaml` : ''
   const ws = workspaces.find((w) => w.id === workspace)
-  const invalid = base && (!VALID.test(base) || base.includes('..')) ? 'Use letras, números, "-", "_" e "/" para pastas.' : null
+  const invalid = base && (!VALID.test(base) || base.includes('..')) ? t.invalidName : null
   const wsIncomplete = creatingWs && (!wsName.trim() || !wsDir.trim())
 
   const submit = async (e: React.FormEvent) => {
@@ -96,7 +98,7 @@ export function NewFlowModal({ workspaces, initialWorkspace, unsavedFlow, onClos
           body: JSON.stringify({ name: wsName, dir: wsDir, appId: wsAppId.trim() || undefined }),
         })
         const data = await res.json()
-        if (!res.ok) throw new Error(data.error ?? 'não consegui criar o workspace')
+        if (!res.ok) throw new Error(data.error ?? t.wsCreateFailed)
         target = data.id
         setWorkspace(target)
       }
@@ -111,34 +113,34 @@ export function NewFlowModal({ workspaces, initialWorkspace, unsavedFlow, onClos
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <form className="modal card" onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="new-flow-title">
         <div className="modal-head">
-          <h2 id="new-flow-title">Novo fluxo</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar">×</button>
+          <h2 id="new-flow-title">{t.newFlow}</h2>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t.close}>×</button>
         </div>
 
         <label className="field">
-          <span>Workspace</span>
+          <span>{t.workspace}</span>
           <select value={workspace} onChange={(e) => setWorkspace(e.target.value)}>
             {workspaces.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name}
               </option>
             ))}
-            <option value={NEW_WS}>+ novo workspace…</option>
+            <option value={NEW_WS}>{t.newWorkspace}</option>
           </select>
         </label>
 
         {creatingWs && (
           <fieldset className="ws-new">
             <label className="field">
-              <span>Nome do workspace</span>
-              <input ref={wsNameRef} value={wsName} placeholder="ex.: Now App" onChange={(e) => setWsName(e.target.value)} />
+              <span>{t.wsName}</span>
+              <input ref={wsNameRef} value={wsName} placeholder={t.wsNamePlaceholder} onChange={(e) => setWsName(e.target.value)} />
             </label>
             <label className="field">
-              <span>Pasta dos fluxos</span>
+              <span>{t.flowsDir}</span>
               <input
                 value={wsDir}
                 list="ws-dirs"
-                placeholder="../meu-repo/.maestro"
+                placeholder={t.flowsDirPlaceholder}
                 onChange={(e) => pickDir(e.target.value)}
               />
               <datalist id="ws-dirs">
@@ -146,25 +148,25 @@ export function NewFlowModal({ workspaces, initialWorkspace, unsavedFlow, onClos
                   <option key={s.dir} value={s.dir}>
                     {s.repo}
                     {s.appId ? ` · ${s.appId}` : ''}
-                    {s.hasFlows ? ' · já tem fluxos' : ''}
+                    {s.hasFlows ? t.hasFlows : ''}
                   </option>
                 ))}
               </datalist>
-              <small>Relativa ao e2e-box. A pasta é criada se não existir.</small>
+              <small>{t.flowsDirHint}</small>
             </label>
             <label className="field">
-              <span>appId (Android)</span>
+              <span>{t.appIdLabel}</span>
               <input value={wsAppId} placeholder="app.empresa.produto" onChange={(e) => setWsAppId(e.target.value)} />
             </label>
           </fieldset>
         )}
 
         <label className="field">
-          <span>Nome do fluxo</span>
+          <span>{t.flowName}</span>
           <input
             ref={inputRef}
             value={name}
-            placeholder="ex.: login, abrir-sacola"
+            placeholder={t.flowNamePlaceholder}
             onChange={(e) => {
               setName(e.target.value)
               setError(null)
@@ -174,25 +176,25 @@ export function NewFlowModal({ workspaces, initialWorkspace, unsavedFlow, onClos
 
         <label className="check-field">
           <input type="checkbox" checked={subflow} onChange={(e) => setSubflow(e.target.checked)} />
-          <span>Subfluxo (vai para <code>subflows/</code>, chamado por <code>runFlow</code>)</span>
+          <span>{t.subflowGoesTo} <code>subflows/</code>{t.subflowCalledBy} <code>runFlow</code>)</span>
         </label>
 
         <div className="modal-preview">
           <div>
-            <span>arquivo</span> <b>{rel ? `${creatingWs ? wsDir || '…' : ''}${creatingWs ? '/' : ''}${rel}` : '—'}</b>
+            <span>{t.file}</span> <b>{rel ? `${creatingWs ? wsDir || '…' : ''}${creatingWs ? '/' : ''}${rel}` : '—'}</b>
           </div>
           <div>
             <span>appId</span> <b>{(creatingWs ? wsAppId : ws?.appId) || 'com.exemplo.app'}</b>
           </div>
         </div>
 
-        {unsavedFlow && <div className="modal-note">As alterações em {unsavedFlow} serão salvas antes de abrir o novo fluxo.</div>}
+        {unsavedFlow && <div className="modal-note">{t.unsavedNote(unsavedFlow)}</div>}
         {(invalid || error) && <div className="modal-error">{invalid ?? error}</div>}
 
         <div className="modal-actions">
-          <button type="button" className="btn" onClick={onClose}>cancelar</button>
+          <button type="button" className="btn" onClick={onClose}>{t.cancel}</button>
           <button type="submit" className="btn run" disabled={!rel || !!invalid || wsIncomplete || busy}>
-            {busy ? 'criando…' : creatingWs ? 'criar workspace e fluxo' : 'criar fluxo'}
+            {busy ? t.creating : creatingWs ? t.createWsAndFlow : t.createFlow}
           </button>
         </div>
       </form>
