@@ -88,6 +88,8 @@ export default function Home() {
   const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([])
   const [runs, setRuns] = useState<RunSummary[]>([])
   const [selected, setSelected] = useState<string | null>(null)
+  /** Pastas fechadas na lista de fluxos, como `workspace:pasta/sub`. Lido do navegador depois de montar (hidratação). */
+  const [closedDirs, setClosedDirs] = useState<Set<string>>(() => new Set())
   const [content, setContent] = useState('')
   const [saved, setSaved] = useState('')
   const [parseError, setParseError] = useState<string | undefined>()
@@ -175,6 +177,43 @@ export default function Home() {
       notify((e as Error).message)
     }
   }, [notify])
+
+  useEffect(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem('e2e-box:closed-dirs') ?? '[]')
+      if (Array.isArray(v)) setClosedDirs(new Set(v.filter((x) => typeof x === 'string')))
+    } catch {}
+  }, [])
+
+  const saveClosedDirs = (next: Set<string>) => {
+    setClosedDirs(next)
+    try {
+      localStorage.setItem('e2e-box:closed-dirs', JSON.stringify([...next]))
+    } catch {}
+  }
+
+  const toggleDir = (key: string) => {
+    const next = new Set(closedDirs)
+    if (!next.delete(key)) next.add(key)
+    saveClosedDirs(next)
+  }
+
+  // O fluxo aberto nunca fica escondido: abre as pastas acima dele.
+  useEffect(() => {
+    if (!selected) return
+    const i = selected.indexOf(':')
+    const parts = selected.slice(i + 1).split('/').slice(0, -1)
+    const keys = parts.map((_, n) => `${selected.slice(0, i)}:${parts.slice(0, n + 1).join('/')}`)
+    setClosedDirs((prev) => {
+      if (!keys.some((k) => prev.has(k))) return prev
+      const next = new Set(prev)
+      keys.forEach((k) => next.delete(k))
+      try {
+        localStorage.setItem('e2e-box:closed-dirs', JSON.stringify([...next]))
+      } catch {}
+      return next
+    })
+  }, [selected])
 
   useEffect(() => {
     // Sem celular, procura mais rápido: ele volta sozinho quando reconectar.
@@ -501,19 +540,51 @@ export default function Home() {
         <div className="col">
           <nav className="card sidebar" aria-label={t.flows}>
             {flowsByWs.map((ws) => {
-              const flowButton = (f: FlowFile) => (
+              const flowButton = (f: FlowFile, depth: number) => (
                 <button
                   key={f.ref}
                   className={`flow ${f.subflow ? 'sub' : ''} ${f.ref === selected ? 'active' : ''}`}
+                  style={{ '--depth': depth } as React.CSSProperties}
                   aria-current={f.ref === selected ? 'true' : undefined}
                   onClick={() => (dirty && !window.confirm(t.discardChanges) ? null : openFlow(f.ref))}
                   title={f.rel}
                 >
                   <span className={`sdot ${running && runRef === f.ref ? 'running' : dotClass(f.lastRun)}`} />
-                  <span className="name">{f.subflow ? f.rel.replace(/^subflows\//, '').replace(/\.ya?ml$/i, '') : f.name}</span>
+                  <span className="name">{f.name}</span>
                 </button>
               )
-              const subflows = ws.files.filter((f) => f.subflow)
+              // Árvore de pastas: os arquivos da pasta primeiro, depois as subpastas, cada uma abre e fecha.
+              const renderDir = (files: FlowFile[], prefix: string, depth: number): React.ReactNode[] => {
+                const here = files.filter((f) => !f.rel.slice(prefix.length).includes('/'))
+                const dirs = [...new Set(files.filter((f) => !here.includes(f)).map((f) => f.rel.slice(prefix.length).split('/')[0]))].sort((a, b) => a.localeCompare(b))
+                return [
+                  ...here.map((f) => flowButton(f, depth)),
+                  ...dirs.map((d) => {
+                    const path = `${prefix}${d}/`
+                    const key = `${ws.id}:${prefix}${d}`
+                    const inside = files.filter((f) => f.rel.startsWith(path))
+                    const open = !closedDirs.has(key)
+                    const failed = inside.some((f) => f.lastRun?.status === 'failed')
+                    return (
+                      <div key={key} className="folder">
+                        <button
+                          className="folder-row"
+                          style={{ '--depth': depth } as React.CSSProperties}
+                          aria-expanded={open}
+                          onClick={() => toggleDir(key)}
+                          title={path}
+                        >
+                          <span className="caret" aria-hidden="true">▸</span>
+                          <span className="name">{d}</span>
+                          {!open && failed && <span className="sdot failed" />}
+                          <span className="count">{inside.length}</span>
+                        </button>
+                        {open && renderDir(inside, path, depth + 1)}
+                      </div>
+                    )
+                  }),
+                ]
+              }
               return (
                 <div key={ws.id} className="ws">
                   <div className="ws-title">
@@ -521,9 +592,7 @@ export default function Home() {
                     <button className="icon-btn" onClick={() => setNewFlowWs(ws.id)} title={t.newFlowIn(ws.name)} aria-label={t.newFlowIn(ws.name)}>+</button>
                   </div>
                   {ws.files.length === 0 && <p className="side-empty">{t.noFlows}</p>}
-                  {ws.files.filter((f) => !f.subflow).map(flowButton)}
-                  {subflows.length > 0 && <div className="ws-sub">{t.subflows}</div>}
-                  {subflows.map(flowButton)}
+                  {renderDir(ws.files, '', 0)}
                 </div>
               )
             })}

@@ -136,7 +136,7 @@ h1, h2, p { margin: 0; }
 .header .meta { color: var(--muted); font-size: var(--fs); }
 .spacer { flex: 1; }
 select.device { background: var(--field); border: 1px solid var(--line-2); border-radius: var(--r-s); height: var(--control); padding: 0 6px; color: var(--text); font-size: var(--fs); max-width: 320px; }
-.busy-note { color: var(--orange); font-size: var(--fs); min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.busy-note { color: var(--orange); font-size: var(--fs); min-width: 0; flex: 0 1 auto; max-width: min(420px, 45vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .battery { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs); font-weight: 600; }
 .battery .cell { width: 22px; height: 11px; border: 1.5px solid var(--muted); border-radius: 3px; padding: 1px; position: relative; }
 .battery .cell::after { content: ""; position: absolute; right: -4px; top: 3px; width: 2px; height: 4px; background: var(--muted); border-radius: 1px; }
@@ -230,7 +230,6 @@ select.device { background: var(--field); border: 1px solid var(--line-2); borde
 .ws + .ws { margin-top: 12px; }
 .ws-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; padding: 0 4px; margin-bottom: 2px; }
 .ws-title h2 { font-size: var(--fs); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ws-sub { color: var(--muted); font-size: var(--fs-s); padding: 8px 8px 2px; }
 .side-empty { color: var(--muted); font-size: var(--fs); padding: 2px 8px; }
 .icon-btn { background: transparent; border: 1px solid var(--line-2); color: var(--muted); border-radius: var(--r-s); min-width: 24px; height: 24px; padding: 0 6px; line-height: 1; flex: none; }
 .icon-btn:hover { color: var(--text); border-color: var(--muted); }
@@ -245,6 +244,13 @@ select.device { background: var(--field); border: 1px solid var(--line-2); borde
 .flow.active { background: var(--active); box-shadow: inset 2px 0 0 var(--orange); font-weight: 600; }
 .flow.sub { color: var(--muted); }
 .flow.sub.active { color: var(--text); }
+.flow { padding-left: calc(8px + var(--depth, 0) * 14px); }
+.folder-row { width: 100%; display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 2px 8px 2px calc(6px + var(--depth, 0) * 14px); background: none; border: 0; border-radius: var(--r-s); color: var(--muted); text-align: left; font-size: var(--fs); }
+.folder-row:hover { background: var(--panel-2); color: var(--text); }
+.folder-row .caret { width: 9px; flex: none; font-size: 9px; transition: transform .12s; }
+.folder-row[aria-expanded="true"] .caret { transform: rotate(90deg); }
+.folder-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.folder-row .count { font-size: var(--fs-s); flex: none; }
 .flow .name, .run-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .run-row .when { color: var(--muted); font-size: var(--fs-s); flex: none; }
 .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-2); flex: none; }
