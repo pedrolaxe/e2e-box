@@ -828,7 +828,9 @@ export async function runFlow(opts: RunOptions): Promise<'passed' | 'failed' | '
   let status: 'passed' | 'failed' | 'stopped' = 'passed'
   let error: string | undefined
   let gone = false
+  let restoreScreen: (() => Promise<void>) | undefined
   try {
+    restoreScreen = await opts.adb.keepAwake()
     ctx.natural = await opts.adb.naturalSize()
     ctx.screen = await opts.adb.screenSize()
     log(ctx, 'info', `tela ${ctx.screen.w}x${ctx.screen.h} · app ${ctx.appId ?? '(sem appId)'}`)
@@ -853,6 +855,7 @@ export async function runFlow(opts: RunOptions): Promise<'passed' | 'failed' | '
     if (h.onFlowComplete?.length && status !== 'stopped' && !gone && !partial) {
       await runCommands(ctx, h.onFlowComplete, 1, 'complete').catch(() => undefined)
     }
+    if (!gone) await restoreScreen?.()
   }
 
   if (status === 'failed') {

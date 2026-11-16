@@ -105,6 +105,28 @@ export class Adb {
       })
   }
 
+  /**
+   * Acende a tela e impede que ela apague (e o celular bloqueie) durante a execução:
+   * liga o "manter tela ativa" do carregador e estica o tempo de tela, que cobre o adb por Wi-Fi na bateria.
+   * Devolve a função que restaura o que o aparelho tinha antes.
+   */
+  async keepAwake(): Promise<() => Promise<void>> {
+    const read = async (ns: string, key: string) => {
+      const v = (await this.shell(`settings get ${ns} ${key}`, { quiet: true }).catch(() => '')).trim()
+      return /^\d+$/.test(v) ? v : undefined
+    }
+    const stayOn = await read('global', 'stay_on_while_plugged_in')
+    const timeout = await read('system', 'screen_off_timeout')
+    await this.shell('svc power stayon true; settings put system screen_off_timeout 1800000; input keyevent 224', { quiet: true }).catch(() => undefined)
+    return async () => {
+      const cmds = [
+        stayOn != null ? `settings put global stay_on_while_plugged_in ${stayOn}` : 'svc power stayon false',
+        timeout != null && `settings put system screen_off_timeout ${timeout}`,
+      ].filter(Boolean)
+      await this.shell(cmds.join('; '), { quiet: true }).catch(() => undefined)
+    }
+  }
+
   /** Tamanho da tela como está agora (girada, a largura e a altura trocam). */
   async screenSize(): Promise<{ w: number; h: number }> {
     const out = await this.shell('dumpsys window displays 2>/dev/null | grep cur=; true', { quiet: true })
