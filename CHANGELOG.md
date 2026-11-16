@@ -6,10 +6,23 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-16
+
 ### Added
 
+- Dashboard: flows in subfolders are shown as a folder tree in the sidebar. Each folder opens and closes, shows how
+  many flows it holds and a red dot when one of them failed while it is closed. The open/closed state is remembered,
+  and the folder of the open flow is expanded automatically.
 - Contributing guide, security policy, code of conduct, and issue and pull request templates.
 - npm version badge in the README.
+
+### Fixed
+
+- The device screen no longer turns off and locks the phone during a run: the screen is woken up and kept on
+  ("stay awake while plugged in" and a longer screen timeout, which also covers adb over Wi-Fi on battery), and the
+  previous settings are restored when the flow ends, fails, is stopped or the CLI gets Ctrl+C.
+- Dashboard: the "CLI is running" note in the header has a capped width, so a long list of flows no longer pushes the
+  header onto a second line.
 
 ## [1.0.1] - 2026-11-10
 
@@ -40,6 +53,7 @@ First public release.
 - Multiple devices in parallel, disconnect detection and screen rotation support.
 - Dashboard available in English and Brazilian Portuguese.
 
-[Unreleased]: https://github.com/pedrolaxe/e2e-box/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/pedrolaxe/e2e-box/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/pedrolaxe/e2e-box/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/pedrolaxe/e2e-box/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/pedrolaxe/e2e-box/releases/tag/v1.0.0
